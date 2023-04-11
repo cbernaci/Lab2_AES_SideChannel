@@ -9,15 +9,21 @@ output wire d256;
 input enable;
 
 // The plain text used as input
-wire[127:0] in = 128'h_00112233445566778899aabbccddeeff;
+//wire[127:0] in = 128'h_00112233445566778899aabbccddeeff;
+
+// CB Edit - NIST Test Vectors
+// From Appendix B: GFSbox Known Answer Test Values
+wire[127:0] in = 128'h_f34481ec3cc627bacd5dc3fb08f273e6;
 
 // The different keys used for testing (one of each type)
-wire[127:0] key128 = 128'h_000102030405060708090a0b0c0d0e0f;
+//wire[127:0] key128 = 128'h_000102030405060708090a0b0c0d0e0f;
+wire[127:0] key128 = 128'h_0;
 wire[191:0] key192 = 192'h_000102030405060708090a0b0c0d0e0f1011121314151617;
 wire[255:0] key256 = 256'h_000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f;
 
 // The expected outputs from the encryption module
-wire[127:0] expected128 = 128'h_69c4e0d86a7b0430d8cdb78070b4c55a;
+//wire[127:0] expected128 = 128'h_69c4e0d86a7b0430d8cdb78070b4c55a;
+wire[127:0] expected128 = 128'h_0336763e966d92595a567cc9ce537f5e;
 wire[127:0] expected192 = 128'h_dda97ca4864cdfe06eaf70a0ec0d7191;
 wire[127:0] expected256 = 128'h_8ea2b7ca516745bfeafc49904b496089;
 
