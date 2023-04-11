@@ -76,22 +76,25 @@ wire [7:0] ma0,ma1,ma2,ma3;
 wire [7:0] m2_tmp_out1,m2_tmp_out2,m2_tmp_out3,m2_tmp_out4;
 wire [7:0] m3_tmp_out1,m3_tmp_out2,m3_tmp_out3,m3_tmp_out4;
 
+
+
 assign tmp1=m_data_in[31:24];
 assign tmp2=m_data_in[23:16];
 assign tmp3=m_data_in[15:8];
 assign tmp4=m_data_in[7:0];
 
-//initial begin
+begin
 mul_2 m1 (clk,tmp1,m2_tmp_out1);
 mul_2 m2 (clk,tmp2,m2_tmp_out2);
 mul_2 m3 (clk,tmp3,m2_tmp_out3);
 mul_2 m4 (clk,tmp4,m2_tmp_out4);
 
-mul_3 m5 (clk,tmp1,m3_tmp_out1);
-mul_3 m6 (clk,tmp2,m3_tmp_out2);
-mul_3 m7 (clk,tmp3,m3_tmp_out3);
-mul_3 m8 (clk,tmp4,m3_tmp_out4);
-//end
+
+mul_3 m5( clk,tmp1,m3_tmp_out1);
+mul_3 m6( clk,tmp2,m3_tmp_out2);
+mul_3 m7( clk,tmp3,m3_tmp_out3);
+mul_3 m8( clk,tmp4,m3_tmp_out4);
+end
 
 assign ma0 = m2_tmp_out1 ^m3_tmp_out2^tmp3^tmp4;
 assign ma1 = tmp1 ^m2_tmp_out2 ^m3_tmp_out3 ^ tmp4;
