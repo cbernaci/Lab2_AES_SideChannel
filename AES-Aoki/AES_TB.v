@@ -1,7 +1,7 @@
 ///////////////////////////////////
 //    AES TestBench encryption   //
 ///////////////////////////////////
-`timescale 1ns/1ns
+`timescale 1 ns / 1 ns
 
 module AES_TB;
 parameter CLOCK = 10;
@@ -51,11 +51,14 @@ initial PT = 128'h00112233445566778899aabbccddeeff; // Plain Text
 initial CT = 128'h69c4e0d86a7b0430d8cdb78070b4c55a; // Cipher Text
 
 initial CLK = 1;
+
 always #(CLOCK/2)
   CLK <= ~CLK;
 
+
 initial begin
 
+$monitor ("[$monitor] time=%0t RSTn = 0x%0b KE=0x%0h PT=0x%0h, CT=0x%h", $time, RSTn, KE, PT, CT); 
 #(CLOCK/2)
 // Reset
   EN_E <= 0;

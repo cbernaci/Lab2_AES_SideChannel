@@ -1,6 +1,8 @@
 /////////////////////////////
 //        SubBytes         //
 /////////////////////////////
+`timescale 1 ns / 1 ns
+
 module SubBytes (x, y);
   input  [31:0] x;
   output [31:0] y;
@@ -217,11 +219,11 @@ endmodule
 /////////////////////////////
 //     Encryotion Core     //
 /////////////////////////////
-module EncCore(di, ki, Rrg, do, ko);
+module EncCore(di, ki, Rrg, d_out, ko);
   input  [127:0] di;
   input  [127:0] ki;
   input  [9:0]   Rrg;
-  output [127:0] do;
+  output [127:0] d_out;
   output [127:0] ko;
 
   wire   [127:0] sb, sr, mx;
@@ -242,7 +244,7 @@ module EncCore(di, ki, Rrg, do, ko);
   MixColumns MX1 (sr[ 63:32], mx[ 63:32]);
   MixColumns MX0 (sr[ 31: 0], mx[ 31: 0]);
 
-  assign do = ((Rrg[0] == 1)? sr: mx) ^ ki;
+  assign d_out = ((Rrg[0] == 1)? sr: mx) ^ ki;
 
   function [7:0] rcon;
   input [9:0] x;
@@ -272,11 +274,11 @@ endmodule
 /////////////////////////////
 //     Decryotion Core     //
 /////////////////////////////
-module DecCore(di, ki, Rrg, do, ko);
+module DecCore(di, ki, Rrg, d_out, ko);
   input  [127:0] di;
   input  [127:0] ki;
   input  [9:0]   Rrg;
-  output [127:0] do;
+  output [127:0] d_out;
   output [127:0] ko;
 
   wire   [127:0] sb, sr, mx, dx;
@@ -298,7 +300,7 @@ module DecCore(di, ki, Rrg, do, ko);
   InvSubBytes SB1 (sr[ 63:32], sb[ 63:32]);
   InvSubBytes SB0 (sr[ 31: 0], sb[ 31: 0]);
 
-  assign do = sb ^ ki;
+  assign d_out = sb ^ ki;
 
   function [7:0] rcon;
   input [9:0] x;
@@ -359,7 +361,7 @@ module AES_ENC(Din, Key, Dout, Drdy, Krdy, RSTn, EN, CLK, BSY, Dvld);
       BSYrg  <= 0;
     end
     else if (EN == 1) begin
-       if (BSYrg == 0) begin
+      if (BSYrg == 0) begin
         if (Krdy == 1) begin
           Krg    <= Key;
           KrgX   <= Key;
