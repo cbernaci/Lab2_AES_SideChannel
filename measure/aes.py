@@ -42,6 +42,7 @@
 # -------------------------------------------------------------------
 # Python module imports.
 # -------------------------------------------------------------------
+import struct
 import sys
 
 
@@ -376,8 +377,6 @@ class AES():
     # -------------------------------------------------------------------
 
     def key_gen128(self, key):
-        print("Doing the 128 bit key expansion")
-
         round_keys = []
         round_keys.append(key)
 
@@ -635,8 +634,6 @@ class AES():
     # -------------------------------------------------------------------
 
     def aes_encipher_block(self, key, block):
-        tmp_block = block[:]
-
         # Get round keys based on the given key.
         if len(key) == 4:
             round_keys = self.key_gen128(key)
@@ -945,6 +942,27 @@ class AES():
             print("All test cases OK.")
         else:
             print("Number of failing test cases: %d" % tc_errors)
+
+    def DPA(self, guess_key, plaintext):
+        # TODO: change str to int instead
+        if isinstance(guess_key, int):
+            guess_key = f"{guess_key:032}"
+        if isinstance(plaintext, int):
+            plaintext = f"{plaintext:032}"
+        key = self.string_to_block(guess_key)
+        block = self.string_to_block(plaintext)
+
+        round_keys = self.key_gen128(key)
+
+        # Init round
+        tmp_block = self.addroundkey(round_keys[0], block)
+
+        # First round
+        return self.subbytes(tmp_block)
+
+    def string_to_block(string):
+        assert len(string) == 32
+        return struct.unpack(">4I", bytes.fromhex(string))
 
 
 # -------------------------------------------------------------------
