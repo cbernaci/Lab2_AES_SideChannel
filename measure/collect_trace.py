@@ -68,7 +68,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
 
     if trigger_flag:
         # Position of the first sample relative to the trigger.
-        trigger_position = 0
+        trigger_position = -0.001  # record data 1ms before the trigger
         # Trigger level, in Volts
         trigger_level = 0.5
 
