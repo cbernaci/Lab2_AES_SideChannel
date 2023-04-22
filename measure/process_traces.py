@@ -7,22 +7,25 @@ path = 'data'
 
 # Loop over each subdirectory in the algorithm directory
 for dirname in os.listdir(path):
-    fullpath = os.path.join(path, dirname)
-    print(dirname.rstrip('.npy'))
+    if dirname.endswith('.npy'):
+        plain_text = dirname[:-4]
+        plt.title(f"trace of {plain_text}")
+
+        full_path = os.path.join(path, dirname)
+        voltages = np.load(full_path)
+        sample = -1
+        plt.plot(voltages[0][:sample], label='trace')
+        plt.plot(voltages[1][:sample], label='trigger')
+
+        window_size = 1000
+        ma = np.convolve(voltages[0][:sample], np.ones(
+            window_size)/window_size, mode='valid')
+        plt.plot(ma, label='moving average')
+
+        plt.legend()
+        plt.show()
+    
+    break
 
 
 # fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
-
-
-voltages = np.load("data/00112233445566778899AABBCCDDEEFF.npy")
-print(voltages.shape)
-sample = -1
-plt.plot(voltages[0][:sample])
-print(voltages[0][:sample].mean())
-# plt.plot(voltages[1][:sample])
-
-window_size = 1000
-ma = np.convolve(voltages[0][:sample], np.ones(window_size)/window_size, mode='valid')
-plt.plot(ma)
-
-plt.show()
