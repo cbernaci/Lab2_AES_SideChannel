@@ -22,6 +22,9 @@ Description:
 import argparse
 import time
 import numpy as np
+import serial
+
+import port_helper
 
 from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAnalogOutNode,
                    DwfAnalogOutFunction, DwfAcquisitionMode, DwfTriggerSource,
@@ -29,9 +32,26 @@ from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAnalogOutNode,
                    PyDwfError)
 from pydwf.utilities import openDwfDevice
 
+DEFAULT_SAMPLE_FREQUENCY = 1.0e6  # TODO: tune this after pyserial done
+DEFAULT_RECORD_LENGTH = 0
+DEFAULT_MEASURE_RANGE = 3.3
+DEFAULT_OUTPUT_PIN = 0
+DEFAULT_PORT = 'COM3'  # TODO: change COM port to match your setup
+DEFAULT_BAUDRATE = 115200
+DEFAULT_TIMEOUT = 0.1
 
 
-def run_demo(device, sample_frequency, record_length, trigger_flag, measure_range, output_pin):
+def open_serial(port, baudrate, timeout):
+    # open serial connection
+    try:
+        return serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
+    except serial.SerialException:
+        print("Serial port not found, please check available port below")
+        port_helper.main()
+        return None
+
+
+def run_demo(device, sample_frequency, record_length, trigger_flag, measure_range, output_pin, ser):
     """Configure the analog input, and perform repeated acquisitions and present them graphically."""
 
     analogIn = device.analogIn
@@ -79,80 +99,83 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         analogIn.triggerPositionSet(trigger_position)
         analogIn.triggerLevelSet(trigger_level)
 
+    # TODO: remove acquisition_nr
     # Outer loop: perform repeated acquisitions.
     acquisition_nr = 0
 
-    counter = 0  # TODO: delete
-
     print("Start measuring")
 
-    while True:
-
-        acquisition_nr += 1  # Increment acquisition number.
-
-        samples = []
-
-        total_samples_lost = total_samples_corrupted = 0
-
-        print("start")
-        # Start acquisition sequence
-        analogIn.configure(False, True)
-
-        # send a pulse to start measurement
-        send_pulse()
-        start = time.perf_counter()
-
-        # Inner loop: single acquisition, receive data from AnalogIn instrument and display it.
+    try:
         while True:
 
-            _ = analogIn.status(True)  # status is not used, only to read data
-            (current_samples_available, current_samples_lost,
-             current_samples_corrupted) = analogIn.statusRecord()
+            if ser.inWaiting() > 0:
+                print("extra data read from serial: ",
+                      ser.read(ser.inWaiting()))
 
-            total_samples_lost += current_samples_lost
-            total_samples_corrupted += current_samples_corrupted
+            acquisition_nr += 1  # Increment acquisition number.
 
-            if current_samples_lost != 0:
-                # Append NaN samples as placeholders for lost samples.
-                # This follows the Digilent example.
-                # We haven't verified yet that this is the proper way to handle lost samples.
-                lost_samples = np.full((current_samples_lost, 2), np.nan)
-                samples.append(lost_samples)
+            samples = []
 
-            if current_samples_available != 0:
-                # Append samples read from both channels.
-                # Note that we read the samples separately for each channel;
-                # We then put them into the same 2D array with shape (current_samples_available, 2).
-                current_samples = np.vstack([analogIn.statusData(channel_index, current_samples_available)
-                                             for channel_index in channels]).transpose()
-                samples.append(current_samples)
+            total_samples_lost = total_samples_corrupted = 0
 
-            # TODO: receive plain text from serial port
-            if time.perf_counter() - start > 0.2:
-                plain_text = counter
-                # Stop acquisition sequence
-                analogIn.configure(False, False)
-                # output low
-                digitalIO.outputSet(0)
-                print("Plain text received: {}".format(plain_text))
-                # Concatenate all acquired samples. The result is an (n, 2) array of sample values.
-                samples = np.concatenate(samples).T
-                # TODO: save data to a npy file
-                np.save("data/{}.npy".format(plain_text), samples)
-                break
+            print("start")
+            # Start acquisition sequence
+            analogIn.configure(False, True)
 
-        if total_samples_lost != 0:
-            print("[{}] - WARNING - {} samples were lost! Reduce sample frequency.".format(
-                acquisition_nr, total_samples_lost))
+            # send a pulse to start measurement
+            send_pulse()
 
-        if total_samples_corrupted != 0:
-            print("[{}] - WARNING - {} samples could be corrupted! Reduce sample frequency.".format(
-                acquisition_nr, total_samples_corrupted))
+            # Inner loop: single acquisition, receive data from AnalogIn instrument and display it.
+            while True:
 
-        if counter < 3:
-            counter += 1
-        else:
-            break
+                # status is not used, only to read data
+                _ = analogIn.status(True)
+                (current_samples_available, current_samples_lost,
+                 current_samples_corrupted) = analogIn.statusRecord()
+
+                total_samples_lost += current_samples_lost
+                total_samples_corrupted += current_samples_corrupted
+
+                if current_samples_lost != 0:
+                    # Append NaN samples as placeholders for lost samples.
+                    # This follows the Digilent example.
+                    # We haven't verified yet that this is the proper way to handle lost samples.
+                    lost_samples = np.full((current_samples_lost, 2), np.nan)
+                    samples.append(lost_samples)
+
+                if current_samples_available != 0:
+                    # Append samples read from both channels.
+                    # Note that we read the samples separately for each channel;
+                    # We then put them into the same 2D array with shape (current_samples_available, 2).
+                    current_samples = np.vstack([analogIn.statusData(channel_index, current_samples_available)
+                                                for channel_index in channels]).transpose()
+                    samples.append(current_samples)
+
+                # stop acquisition when serial port receives data
+                if ser.inWaiting() > 0:
+                    # Stop acquisition sequence
+                    analogIn.configure(False, False)
+                    # output low
+                    digitalIO.outputSet(0)
+
+                    # read plain text (HEX format) from serial port
+                    plain_text = ser.readline().decode("utf-8").strip()
+                    print("Plain text received: {}".format(plain_text))
+                    # Concatenate all acquired samples
+                    samples = np.concatenate(samples).T
+                    # save data to a npy file
+                    np.save("data/{}.npy".format(plain_text), samples)
+                    break
+
+            if total_samples_lost != 0:
+                print("[{}] - WARNING - {} samples were lost! Reduce sample frequency.".format(
+                    acquisition_nr, total_samples_lost))
+
+            if total_samples_corrupted != 0:
+                print("[{}] - WARNING - {} samples could be corrupted! Reduce sample frequency.".format(
+                    acquisition_nr, total_samples_corrupted))
+    except KeyboardInterrupt:
+        print("Stop measuring")
 
 
 def main():
@@ -160,11 +183,6 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Demonstrate analog input recording with triggering.")
-
-    DEFAULT_SAMPLE_FREQUENCY = 1.0e6  # TODO: tune this after pyserial done
-    DEFAULT_RECORD_LENGTH = 0
-    DEFAULT_MEASURE_RANGE = 3.3
-    DEFAULT_OUTPUT_PIN = 0
 
     parser.add_argument(
         "-sn", "--serial-number-filter",
@@ -206,13 +224,40 @@ def main():
     )
 
     parser.add_argument(
-        "-op", "--output-pin",
+        "--output-pin",
         type=int,
         default=DEFAULT_OUTPUT_PIN,
         help="digital output pin (default: {})".format(DEFAULT_OUTPUT_PIN)
     )
 
+    parser.add_argument(
+        "-p", "--port",
+        type=str,
+        nargs='?',
+        default=DEFAULT_PORT,
+        help="serial port for Arduino (default: {})".format(DEFAULT_OUTPUT_PIN)
+    )
+
+    parser.add_argument(
+        "--baudrate",
+        type=int,
+        default=DEFAULT_BAUDRATE,
+        help="baudrate for UART (default: {})".format(DEFAULT_BAUDRATE)
+    )
+
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help="timeout for serial read (default: {})".format(DEFAULT_TIMEOUT)
+    )
+
     args = parser.parse_args()
+
+    # open UART connection with Arduino
+    ser = open_serial(args.port, args.baudrate, args.timeout)
+    if ser is None:
+        return
 
     dwf = DwfLibrary()
 
@@ -233,11 +278,13 @@ def main():
                      args.record_length,
                      args.trigger,
                      args.measure_range,
-                     1 << args.output_pin)
+                     1 << args.output_pin,
+                     ser)
 
     except PyDwfError as exception:
         print("PyDwfError:", exception)
     finally:
+        ser.close()
         print("Closed")
 
 
