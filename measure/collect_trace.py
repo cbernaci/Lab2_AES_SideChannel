@@ -107,21 +107,14 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     digitalIO.outputSet(0)
 
     def send_pulse():
-        # pull output low first
-        digitalIO.outputSet(0)
-        # sleep for a while
-        time.sleep(0.001)
-        # pull to high on the digital output
+        # output high
         digitalIO.outputSet(output_pin)
-
-    # Considered (and rejected) splitting up this function. It is clear enough as-is.
-    # pylint: disable=too-many-statements,too-many-branches, too-many-locals
 
     if trigger_flag:
         # Position of first sample relative to the trigger.
-        trigger_position = 0  # get data TODO 20ms before trigger
-        # Trigger level, in Volts.  # TODO
-        trigger_level = 1.0
+        trigger_position = 0
+        # Trigger level, in Volts
+        trigger_level = 0.5
 
     # Configure analog input instrument acquisition.
 
@@ -139,17 +132,16 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     analogIn.frequencySet(sample_frequency)
     analogIn.recordLengthSet(record_length)
 
+    # TODO: might be able to remove trigger completely
     if trigger_flag:
         # Set up trigger for the analog input instrument.
         # We will trigger on the rising transitions of CH2 (the "cosine" channel) through 0V.
         analogIn.triggerSourceSet(DwfTriggerSource.DetectorAnalogIn)
-        analogIn.triggerChannelSet(CH2)  # TODO
+        analogIn.triggerChannelSet(CH2)
         analogIn.triggerTypeSet(DwfAnalogInTriggerType.Edge)
         analogIn.triggerConditionSet(DwfTriggerSlope.Rise)
         analogIn.triggerPositionSet(trigger_position)
-        analogIn.triggerLevelSet(trigger_level)  # TODO
-        # # A small amount of hysteresis to make sure we only see rising edges.
-        # analogIn.triggerHysteresisSet(0.010)  # TODO
+        analogIn.triggerLevelSet(trigger_level)
 
     # Outer loop: perform repeated acquisitions.
     acquisition_nr = 0
@@ -177,7 +169,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         # Inner loop: single acquisition, receive data from AnalogIn instrument and display it.
         while True:
 
-            status = analogIn.status(True)
+            _ = analogIn.status(True)  # status is not used, only to read data
             (current_samples_available, current_samples_lost,
              current_samples_corrupted) = analogIn.statusRecord()
 
@@ -204,9 +196,11 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                 plain_text = counter
                 # Stop acquisition sequence
                 analogIn.configure(False, False)
+                # output low
+                digitalIO.outputSet(0)
                 print("Plain text received: {}".format(plain_text))
                 # Concatenate all acquired samples. The result is an (n, 2) array of sample values.
-                samples = np.concatenate(samples)
+                samples = np.concatenate(samples).T
                 # TODO: save data to a npy file
                 np.save("data/{}.npy".format(plain_text), samples)
                 break
@@ -219,7 +213,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
             print("[{}] - WARNING - {} samples could be corrupted! Reduce sample frequency.".format(
                 acquisition_nr, total_samples_corrupted))
 
-        if counter < 5:
+        if counter < 3:
             counter += 1
         else:
             break
@@ -231,7 +225,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Demonstrate analog input recording with triggering.")
 
-    DEFAULT_SAMPLE_FREQUENCY = 10.0e5
+    DEFAULT_SAMPLE_FREQUENCY = 1.0e6  # TODO: tune this after pyserial done
     DEFAULT_RECORD_LENGTH = 0
     DEFAULT_MEASURE_RANGE = 3.3
     DEFAULT_OUTPUT_PIN = 0
