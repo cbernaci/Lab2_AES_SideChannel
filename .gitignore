@@ -1,3 +1,7 @@
+# ignore test file
+temp.py
+# ignore .pyc files
+*.pyc
 # ignore examples file
 examples/
 # ignore .npy files
