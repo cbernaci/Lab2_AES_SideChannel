@@ -1,64 +1,31 @@
 #! /usr/bin/env python3
 
-"""Demo of the AnalogIn "Record" acquisition mode.
+"""
+This Python script is used to measure the trace of an FPGA board
 
-Summary
--------
+wire connection:
+    connect oscilloscope ch1 across the 0.25-ohm resistor
+    connect oscilloscope ch2 to the ground and digital pin 0
+    connect digital pin 0 to the FPGA board as a trigger for the next AES 
+    encryption connects FPGA to Arduino (SPI), connect Arduino to PC (UART)
 
-This demo generates signals on two AnalogOut instrument channels and captures them on two AnalogIn instrument
-channels, displaying the result as a graph using matplotlib.
-
-For this demo to work as intended, connect analog-out channel #1 to analog-in channel #1 and analog-out
-channel #2 to analog-in channel #2.
-
-Description
------------
-
-When using the AnalogIn instrument with the "Record" acquisition mode, we prepare the analog input channel and
-(if desired) trigger settings, then start the acquisition using a call to analogIn.configure().
-
-Next, we enter a loop where we continuously fetch data from the instrument by calling analogIn.status(True).
-This is repeated until analogIn.status() returns DwfState.Done. Note that this last status() call also transfers
-acquisition data that needs to be processed.
-
-After each status() call, we get information on the acquisition status by calling statusRecord(). This call
-returns three numbers: counts of available, lost, and corrupted samples.
-
-For perfect acquisition, the lost and corrupt counts should be zero. If the acquisition requires more bandwidth than
-can be accommodated on the USB-2 link to the device (i.e., the sample frequency is too high), or if we fetch data too
-slowly from our user program, we may see non-zero lost and corrupted counts.
-
-If this happens, the documentation provides no guidance on handling this other than to suggest that the acquisition
-sample rate should be lowered, and/or the process should fetch data more quickly. The examples provided by Digilent
-suggest that the way to handle nonzero "lost" samples is to skip over them; this is what we do in the program below
-(filling the lost samples with NaNs).
-
-Assuming the lost and corrupt counts are zero, the 'available' count gives the number of valid samples available in
-the local (PC-side) buffer. These samples can be obtained using calls to statusData(), statusData2(), or
-statusData16(). The pydwf library implements these functions by having them allocate a sufficiently-sized local
-numpy array, reading the sample data into it, and returning that array.
-
-At the end of the acquisition, i.e., after the status()  function returns DwfState.Done, these sub-arrays are
-concatenated to deliver the full sample record of the acquisition.
-
-At that point, we discard all but the last (record_length * sample_frequency) samples that constitute the requested
-recording length. The preceding samples were received from the device, but the first few samples may be garbled,
-and the total number of samples received will generally exceed the number of samples requested, sometimes by a
-considerable margin.
-
-The discarding process is also needed to make sure that the trigger position is in a predictable and reproducible
-place. After discarding the first samples of the acquisition to get the requested length, the first remaining
-sample is at the time, measured in seconds, returned by the analogIn.triggerPositionStatus() call, relative to
-the trigger moment.
+Description:
+    The code pulse digital pin 0 to high to signal the FPGA to start AES 
+    encryption, meanwhile start the Analog Discovery 2 to measure the voltage 
+    across the 0.25-ohm resistor. When the Serial receives the data from Arduino,
+    it means the AES encryption is done, and the sent data is the plain text for
+    the encryption. The voltage trace will be stored in a .npy file with the 
+    name the same as the plain text. Further analysis will be done in other 
+    scripts.
 """
 
 import argparse
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 
-from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAnalogOutNode, DwfAnalogOutFunction, DwfAcquisitionMode,
-                   DwfTriggerSource, DwfAnalogInTriggerType, DwfTriggerSlope, DwfState, DwfAnalogInFilter,
+from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAnalogOutNode,
+                   DwfAnalogOutFunction, DwfAcquisitionMode, DwfTriggerSource,
+                   DwfAnalogInTriggerType, DwfTriggerSlope, DwfAnalogInFilter,
                    PyDwfError)
 from pydwf.utilities import openDwfDevice
 
@@ -88,7 +55,7 @@ def configure_analog_output(analogOut, analog_out_frequency, analog_out_amplitud
     analogOut.nodeOffsetSet(CH2, node, analog_out_offset)
     analogOut.nodePhaseSet(CH2, node, 0.0)
 
-    # Synchronize second channel to first channel. This ensures that they will start simultaneously.
+    # Synchronize the second channel to the first channel. This ensures that they will start simultaneously.
     analogOut.masterSet(CH2, CH1)
 
     # Start output on both channels.
@@ -111,7 +78,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         digitalIO.outputSet(output_pin)
 
     if trigger_flag:
-        # Position of first sample relative to the trigger.
+        # Position of the first sample relative to the trigger.
         trigger_position = 0
         # Trigger level, in Volts
         trigger_level = 0.5
@@ -132,7 +99,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     analogIn.frequencySet(sample_frequency)
     analogIn.recordLengthSet(record_length)
 
-    # TODO: might be able to remove trigger completely
+    # TODO: might be able to remove the trigger completely
     if trigger_flag:
         # Set up trigger for the analog input instrument.
         # We will trigger on the rising transitions of CH2 (the "cosine" channel) through 0V.
@@ -295,7 +262,7 @@ def main():
             # Signal amplitude in Volt.
             # The AnalogOut instrument can do 10 Vpp centered around 0 V.
             # However, we use the AnalogIn instrument with a ~ 5 Vpp range centered around 0 V,
-            #   so for our example we set the analog output signal amplitude to 2.5 V.
+            # So for our example we set the analog output signal amplitude to 2.5 V.
             analog_out_amplitude = 1
 
             # Signal offset in Volt.
