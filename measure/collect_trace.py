@@ -26,10 +26,9 @@ import serial
 
 import port_helper
 
-from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAnalogOutNode,
-                   DwfAnalogOutFunction, DwfAcquisitionMode, DwfTriggerSource,
-                   DwfAnalogInTriggerType, DwfTriggerSlope, DwfAnalogInFilter,
-                   PyDwfError)
+from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAcquisitionMode, 
+                   DwfTriggerSource, DwfAnalogInTriggerType, DwfTriggerSlope,
+                   DwfAnalogInFilter, PyDwfError)
 from pydwf.utilities import openDwfDevice
 
 DEFAULT_SAMPLE_FREQUENCY = 1.0e6  # TODO: tune this after pyserial done
