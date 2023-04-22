@@ -109,8 +109,9 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     def send_pulse():
         # pull output low first
         digitalIO.outputSet(0)
+        # sleep for a while
         time.sleep(0.001)
-        # send a pulse on the digital output
+        # pull to high on the digital output
         digitalIO.outputSet(output_pin)
 
     # Considered (and rejected) splitting up this function. It is clear enough as-is.
@@ -147,37 +148,33 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         analogIn.triggerConditionSet(DwfTriggerSlope.Rise)
         analogIn.triggerPositionSet(trigger_position)
         analogIn.triggerLevelSet(trigger_level)  # TODO
-        # A small amount of hysteresis to make sure we only see rising edges.
-        analogIn.triggerHysteresisSet(0.010)  # TODO
-
-    # Calculate number of samples for each acquisition.
-    num_samples = round(sample_frequency * record_length)
+        # # A small amount of hysteresis to make sure we only see rising edges.
+        # analogIn.triggerHysteresisSet(0.010)  # TODO
 
     # Outer loop: perform repeated acquisitions.
     acquisition_nr = 0
 
-    ch1_line = None
-    ch2_line = None
+    counter = 0  # TODO: delete
+
+    print("Start measuring")
 
     while True:
 
         acquisition_nr += 1  # Increment acquisition number.
 
-        # print("[{}] Recording {} samples ...".format(
-        #     acquisition_nr, num_samples))
-
-        # Inner loop: single acquisition, receive data from AnalogIn instrument and display it.
-
         samples = []
 
         total_samples_lost = total_samples_corrupted = 0
 
-        analogIn.configure(False, True)  # Start acquisition sequence.
+        print("start")
+        # Start acquisition sequence
+        analogIn.configure(False, True)
 
         # send a pulse to start measurement
         send_pulse()
         start = time.perf_counter()
 
+        # Inner loop: single acquisition, receive data from AnalogIn instrument and display it.
         while True:
 
             status = analogIn.status(True)
@@ -202,13 +199,16 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                                              for channel_index in channels]).transpose()
                 samples.append(current_samples)
 
-            if status == DwfState.Done:
-                # We received the last of the record samples.
-                # Note the time, in seconds, of the first valid sample, and break from the acquisition loop.
-                if trigger_flag:
-                    time_of_first_sample = analogIn.triggerPositionStatus()
-                else:
-                    time_of_first_sample = 0.0
+            # TODO: receive plain text from serial port
+            if time.perf_counter() - start > 0.2:
+                plain_text = counter
+                # Stop acquisition sequence
+                analogIn.configure(False, False)
+                print("Plain text received: {}".format(plain_text))
+                # Concatenate all acquired samples. The result is an (n, 2) array of sample values.
+                samples = np.concatenate(samples)
+                # TODO: save data to a npy file
+                np.save("data/{}.npy".format(plain_text), samples)
                 break
 
         if total_samples_lost != 0:
@@ -219,69 +219,10 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
             print("[{}] - WARNING - {} samples could be corrupted! Reduce sample frequency.".format(
                 acquisition_nr, total_samples_corrupted))
 
-        # Concatenate all acquired samples. The result is an (n, 2) array of sample values.
-        samples = np.concatenate(samples)
-
-        if len(samples) > num_samples:
-            discard_count = len(samples) - num_samples
-            # print("[{}] - NOTE - discarding oldest {} of {} samples ({:.1f}%); keeping {} samples.".format(
-            #     acquisition_nr,
-            #     discard_count, len(samples), 100.0 * discard_count / len(samples), num_samples))
-
-            samples = samples[discard_count:]
-
-        # Calculate sample time of each of the samples.
-        t = time_of_first_sample + np.arange(len(samples)) / sample_frequency
-
-        plt.title("AnalogIn acquisition #{}\n{} samples ({} seconds at {} Hz)\n".format(
-            acquisition_nr, num_samples, record_length, sample_frequency))
-
-        if ch1_line is None:
-
-            # This is the first time we plot acquisition data.
-
-            plt.grid()
-
-            if trigger_flag:
-                plt.xlabel(
-                    "time relative to trigger [s]\ntriggering on rising zero transition of channel 2")
-            else:
-                plt.xlabel("acquisition time [s]")
-
-            plt.ylabel("signal [V]")
-
-            plt.xlim(-0.05 * record_length, 1.05 * record_length)
-
-            plt.ylim(-3.3, 3.3)  # TODO
-
-            if trigger_flag:
-                plt.axvline(0.0, c='r')
-                plt.axhline(trigger_level, c='r')
-
-            (ch1_line, ) = plt.plot(
-                t, samples[:, CH1], color='#346f9f', label="channel 1 (cos)")
-            (ch2_line, ) = plt.plot(
-                t, samples[:, CH2], color='#ffdd56', label="channel 2 (sin)")
-
-            plt.legend(loc="upper right")
+        if counter < 5:
+            counter += 1
         else:
-
-            # The plot is already available. Just update the acquisition data.
-
-            ch1_line.set_xdata(t)
-            ch1_line.set_ydata(samples[:, CH1])
-
-            ch2_line.set_xdata(t)
-            ch2_line.set_ydata(samples[:, CH2])
-
-        plt.pause(1e-3)
-
-        if len(plt.get_fignums()) == 0:
-            # User has closed the window, finish.
             break
-
-        # print("sleep for 0.5 seconds")
-        # time.sleep(0.5)
 
 
 def main():
@@ -291,7 +232,7 @@ def main():
         description="Demonstrate analog input recording with triggering.")
 
     DEFAULT_SAMPLE_FREQUENCY = 10.0e5
-    DEFAULT_RECORD_LENGTH = 0.01
+    DEFAULT_RECORD_LENGTH = 0
     DEFAULT_MEASURE_RANGE = 3.3
     DEFAULT_OUTPUT_PIN = 0
 
