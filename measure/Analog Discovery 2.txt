@@ -1,0 +1,151 @@
+WaveForms version: 3.19.5
+
+Device name: Analog Discovery 2
+
+Analog input information:
+	channels: 2
+	maximum buffer size: 8192
+	ADC resolution: 14 bits
+	range settable from 5.0V to 50.0V in 2 steps
+	offset settable from -25.0V to 25.0V in 16384 steps
+
+Analog output information:
+	channel 0:
+		node 0:
+			node type: carrier
+			maximum buffer size: 4096
+			amplitude settable from: 0.01V to 5.0V
+			offset settable from: -5.0V to 5.0V
+			frequency settable from: 1e-06Hz to 100000000.0Hz
+
+		node 1:
+			node type: FM
+			maximum buffer size: 2048
+			amplitude settable from: -200.0V to 200.0V
+			offset settable from: -200.0V to 200.0V
+			frequency settable from: 1e-06Hz to 100000000.0Hz
+
+		node 2:
+			node type: AM
+			maximum buffer size: 2048
+			amplitude settable from: -200.0V to 200.0V
+			offset settable from: -200.0V to 200.0V
+			frequency settable from: 1e-06Hz to 100000000.0Hz
+
+	channel 1:
+		node 0:
+			node type: carrier
+			maximum buffer size: 4096
+			amplitude settable from: 0.01V to 5.0V
+			offset settable from: -5.0V to 5.0V
+			frequency settable from: 1e-06Hz to 100000000.0Hz
+
+		node 1:
+			node type: FM
+			maximum buffer size: 2048
+			amplitude settable from: -200.0V to 200.0V
+			offset settable from: -200.0V to 200.0V
+			frequency settable from: 1e-06Hz to 100000000.0Hz
+
+		node 2:
+			node type: AM
+			maximum buffer size: 2048
+			amplitude settable from: -200.0V to 200.0V
+			offset settable from: -200.0V to 200.0V
+			frequency settable from: 1e-06Hz to 100000000.0Hz
+
+Analog IO information:
+	channel 0:
+		channel name: Positive Supply
+		channel label: V+
+		node 0:
+			node name: Enable
+			unit of measurement: 
+			settable from: 0.0 to 1.0 in 2 steps
+			readable between: 0.0 to 1.0 in 2 steps
+
+		node 1:
+			node name: Voltage
+			unit of measurement: V
+			settable from: 0.5 to 5.0 in 4000 steps
+			readable between: 0.0 to 5.0 in 0 steps
+
+		node 2:
+			node name: Current
+			unit of measurement: A
+			settable from: 0.0 to 1.0 in 1 steps
+			readable between: 0.0 to 0.0 in 0 steps
+
+	channel 1:
+		channel name: Negative Supply
+		channel label: V-
+		node 0:
+			node name: Enable
+			unit of measurement: 
+			settable from: 0.0 to 1.0 in 2 steps
+			readable between: 0.0 to 1.0 in 2 steps
+
+		node 1:
+			node name: Voltage
+			unit of measurement: V
+			settable from: -5.0 to -0.5 in 4000 steps
+			readable between: 0.0 to 5.0 in 0 steps
+
+		node 2:
+			node name: Current
+			unit of measurement: A
+			settable from: 0.0 to 1.0 in 1 steps
+			readable between: 0.0 to 0.0 in 0 steps
+
+	channel 2:
+		channel name: USB Monitor
+		channel label: USB
+		node 0:
+			node name: Voltage
+			unit of measurement: V
+			settable from: 0.0 to 0.0 in 0 steps
+			readable between: 0.0 to 6.65 in 4096 steps
+
+		node 1:
+			node name: Current
+			unit of measurement: A
+			settable from: 0.0 to 0.0 in 0 steps
+			readable between: 0.0 to 1.0584 in 4096 steps
+
+		node 2:
+			node name: Temperature
+			unit of measurement: C
+			settable from: 0.0 to 0.0 in 0 steps
+			readable between: -128.0 to 127.75 in 1024 steps
+
+	channel 3:
+		channel name: Auxiliary Monitor
+		channel label: Aux
+		node 0:
+			node name: Voltage
+			unit of measurement: V
+			settable from: 0.0 to 0.0 in 0 steps
+			readable between: 0.0 to 26.35 in 4096 steps
+
+		node 1:
+			node name: Current
+			unit of measurement: A
+			settable from: 0.0 to 0.0 in 0 steps
+			readable between: 0.0 to 3.207272 in 4096 steps
+
+	channel 4:
+		channel name: Power Supply
+		channel label: V+-
+		node 0:
+			node name: Limit
+			unit of measurement: 
+			settable from: 0.0 to 3.0 in 4 steps
+			readable between: 0.0 to 1.0 in 2 steps
+
+Digital input information:
+	channels: 16
+	maximum buffer size: 4096
+
+Digital output information:
+	channels: 16
+	maximum buffer size: 1024
