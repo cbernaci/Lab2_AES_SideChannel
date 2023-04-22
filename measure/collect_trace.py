@@ -99,10 +99,6 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         analogIn.triggerPositionSet(trigger_position)
         analogIn.triggerLevelSet(trigger_level)
 
-    # TODO: remove acquisition_nr
-    # Outer loop: perform repeated acquisitions.
-    acquisition_nr = 0
-
     print("Start measuring")
 
     try:
@@ -111,8 +107,6 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
             if ser.inWaiting() > 0:
                 print("extra data read from serial: ",
                       ser.read(ser.inWaiting()))
-
-            acquisition_nr += 1  # Increment acquisition number.
 
             samples = []
 
@@ -168,12 +162,10 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                     break
 
             if total_samples_lost != 0:
-                print("[{}] - WARNING - {} samples were lost! Reduce sample frequency.".format(
-                    acquisition_nr, total_samples_lost))
+                print(f"WARNING - {total_samples_lost} samples were lost! Reduce sample frequency.")
 
             if total_samples_corrupted != 0:
-                print("[{}] - WARNING - {} samples could be corrupted! Reduce sample frequency.".format(
-                    acquisition_nr, total_samples_corrupted))
+                print(f"WARNING - {total_samples_corrupted} samples could be corrupted! Reduce sample frequency.")
     except KeyboardInterrupt:
         print("Stop measuring")
 
