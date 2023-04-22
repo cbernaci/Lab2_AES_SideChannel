@@ -26,7 +26,7 @@ import serial
 
 import port_helper
 
-from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAcquisitionMode, 
+from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAcquisitionMode,
                    DwfTriggerSource, DwfAnalogInTriggerType, DwfTriggerSlope,
                    DwfAnalogInFilter, PyDwfError)
 from pydwf.utilities import openDwfDevice
@@ -35,7 +35,7 @@ DEFAULT_SAMPLE_FREQUENCY = 1.0e6  # TODO: tune this after pyserial done
 DEFAULT_RECORD_LENGTH = 0
 DEFAULT_MEASURE_RANGE = 3.3
 DEFAULT_OUTPUT_PIN = 0
-DEFAULT_PORT = 'COM3'  # TODO: change COM port to match your setup
+DEFAULT_PORT = 'COM5'  # TODO: change COM port to match your setup
 DEFAULT_BAUDRATE = 115200
 DEFAULT_TIMEOUT = 0.1
 
@@ -111,12 +111,15 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
 
             total_samples_lost = total_samples_corrupted = 0
 
-            print("start")
             # Start acquisition sequence
             analogIn.configure(False, True)
 
             # send a pulse to start measurement
+            time.sleep(0.1)
             send_pulse()
+
+            # timeout measure traces
+            start_time = time.perf_counter()
 
             # Inner loop: single acquisition, receive data from AnalogIn instrument and display it.
             while True:
@@ -154,17 +157,30 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                     # read plain text (HEX format) from serial port
                     plain_text = ser.readline().decode("utf-8").strip()
                     print("Plain text received: {}".format(plain_text))
-                    # Concatenate all acquired samples
-                    samples = np.concatenate(samples).T
-                    # save data to a npy file
-                    np.save("data/{}.npy".format(plain_text), samples)
+
+                    if total_samples_lost != 0:
+                        print(
+                            f"WARNING - {total_samples_lost} samples were lost! Reduce sample frequency.")
+                        print("Not saving this data")
+                    elif total_samples_corrupted != 0:
+                        print(
+                            f"WARNING - {total_samples_corrupted} samples could be corrupted! Reduce sample frequency.")
+                        print("Not saving this data")
+                    else:
+                        # Concatenate all acquired samples
+                        samples = np.concatenate(samples).T
+                        # save data to a npy file
+                        np.save(
+                            "data/{}.npy".format(plain_text.zfill(32)), samples)
+                    break
+                elif time.perf_counter() - start_time > 1:
+                    # Stop acquisition sequence
+                    analogIn.configure(False, False)
+                    # output low
+                    digitalIO.outputSet(0)
+                    print("timeout!!! not saving data")
                     break
 
-            if total_samples_lost != 0:
-                print(f"WARNING - {total_samples_lost} samples were lost! Reduce sample frequency.")
-
-            if total_samples_corrupted != 0:
-                print(f"WARNING - {total_samples_corrupted} samples could be corrupted! Reduce sample frequency.")
     except KeyboardInterrupt:
         print("Stop measuring")
 
