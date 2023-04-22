@@ -30,37 +30,6 @@ from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAnalogOutNode,
 from pydwf.utilities import openDwfDevice
 
 
-def configure_analog_output(analogOut, analog_out_frequency, analog_out_amplitude, analog_out_offset):
-    """Configure a cosine signal on channel 1, and a sine signal on channel 2."""
-
-    # This channel will carry a 'cosine' (i.e., precede channel 2 by 90 degrees).
-    CH1 = 0
-    CH2 = 1  # This channel will carry a 'sine'.
-
-    node = DwfAnalogOutNode.Carrier
-
-    analogOut.reset(-1)  # Reset both channels.
-
-    analogOut.nodeEnableSet(CH1, node, True)
-    analogOut.nodeFunctionSet(CH1, node, DwfAnalogOutFunction.Sine)
-    analogOut.nodeFrequencySet(CH1, node, analog_out_frequency)
-    analogOut.nodeAmplitudeSet(CH1, node, analog_out_amplitude)
-    analogOut.nodeOffsetSet(CH1, node, analog_out_offset)
-    analogOut.nodePhaseSet(CH1, node, 90.0)
-
-    analogOut.nodeEnableSet(CH2, node, True)
-    analogOut.nodeFunctionSet(CH2, node, DwfAnalogOutFunction.Sine)
-    analogOut.nodeFrequencySet(CH2, node, analog_out_frequency)
-    analogOut.nodeAmplitudeSet(CH2, node, analog_out_amplitude)
-    analogOut.nodeOffsetSet(CH2, node, analog_out_offset)
-    analogOut.nodePhaseSet(CH2, node, 0.0)
-
-    # Synchronize the second channel to the first channel. This ensures that they will start simultaneously.
-    analogOut.masterSet(CH2, CH1)
-
-    # Start output on both channels.
-    analogOut.configure(CH1, True)
-
 
 def run_demo(device, sample_frequency, record_length, trigger_flag, measure_range, output_pin):
     """Configure the analog input, and perform repeated acquisitions and present them graphically."""
@@ -255,21 +224,6 @@ def main():
 
         with openDwfDevice(dwf, serial_number_filter=args.serial_number_filter,
                            score_func=maximize_analog_in_buffer_size) as device:
-
-            # We want to see 5 full cycles in the acquisition window.
-            analog_out_frequency = 1000
-
-            # Signal amplitude in Volt.
-            # The AnalogOut instrument can do 10 Vpp centered around 0 V.
-            # However, we use the AnalogIn instrument with a ~ 5 Vpp range centered around 0 V,
-            # So for our example we set the analog output signal amplitude to 2.5 V.
-            analog_out_amplitude = 1
-
-            # Signal offset in Volt.
-            analog_out_offset = 0.0
-
-            configure_analog_output(
-                device.analogOut, analog_out_frequency, analog_out_amplitude, analog_out_offset)
 
             # Wait for a bit to ensure the stability of the analog output signals.
             time.sleep(2.0)
