@@ -101,16 +101,17 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     analogIn = device.analogIn
     digitalIO = device.digitalIO
 
-    # # setup digital io as output, and output low
-    # digitalIO.reset()
-    # digitalIO.outputEnableSet(output_pin)
-    # digitalIO.outputSet(0)
+    # setup digital io as output, and output low
+    digitalIO.reset()
+    digitalIO.outputEnableSet(output_pin)
+    digitalIO.outputSet(0)
 
-    # def send_pulse():
-    #     # send a pulse on the digital output
-    #     print("sending pulse")
-    #     digitalIO.outputSet(output_pin)
-    #     digitalIO.outputSet(0)
+    def send_pulse():
+        # pull output low first
+        digitalIO.outputSet(0)
+        time.sleep(0.001)
+        # send a pulse on the digital output
+        digitalIO.outputSet(output_pin)
 
     # Considered (and rejected) splitting up this function. It is clear enough as-is.
     # pylint: disable=too-many-statements,too-many-branches, too-many-locals
@@ -119,7 +120,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         # Position of first sample relative to the trigger.
         trigger_position = 0  # get data TODO 20ms before trigger
         # Trigger level, in Volts.  # TODO
-        trigger_level = 0.0
+        trigger_level = 1.0
 
     # Configure analog input instrument acquisition.
 
@@ -141,7 +142,6 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         # Set up trigger for the analog input instrument.
         # We will trigger on the rising transitions of CH2 (the "cosine" channel) through 0V.
         analogIn.triggerSourceSet(DwfTriggerSource.DetectorAnalogIn)
-        # analogIn.triggerSourceSet(DwfTriggerSource.DigitalOut)
         analogIn.triggerChannelSet(CH2)  # TODO
         analogIn.triggerTypeSet(DwfAnalogInTriggerType.Edge)
         analogIn.triggerConditionSet(DwfTriggerSlope.Rise)
@@ -160,8 +160,6 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     ch2_line = None
 
     while True:
-        # print("starting acquisition")
-        # send_pulse()
 
         acquisition_nr += 1  # Increment acquisition number.
 
@@ -175,6 +173,10 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         total_samples_lost = total_samples_corrupted = 0
 
         analogIn.configure(False, True)  # Start acquisition sequence.
+
+        # send a pulse to start measurement
+        send_pulse()
+        start = time.perf_counter()
 
         while True:
 
@@ -278,8 +280,8 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
             # User has closed the window, finish.
             break
 
-        # print("sleep for 3 seconds")
-        # time.sleep(3)
+        # print("sleep for 0.5 seconds")
+        # time.sleep(0.5)
 
 
 def main():
@@ -289,9 +291,9 @@ def main():
         description="Demonstrate analog input recording with triggering.")
 
     DEFAULT_SAMPLE_FREQUENCY = 10.0e5
-    DEFAULT_RECORD_LENGTH = 0.1
+    DEFAULT_RECORD_LENGTH = 0.01
     DEFAULT_MEASURE_RANGE = 3.3
-    DEFAULT_OUTPUT_PIN = 1  # pin 0
+    DEFAULT_OUTPUT_PIN = 0
 
     parser.add_argument(
         "-sn", "--serial-number-filter",
@@ -375,7 +377,7 @@ def main():
                      args.record_length,
                      args.trigger,
                      args.measure_range,
-                     args.output_pin)
+                     1 << args.output_pin)
 
     except PyDwfError as exception:
         print("PyDwfError:", exception)
