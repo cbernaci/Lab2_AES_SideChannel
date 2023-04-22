@@ -2,3 +2,5 @@
 examples/
 # ignore .npy files
 *.npy
+# include those in data folder, since those are traces
+!measure/data/*.npy
