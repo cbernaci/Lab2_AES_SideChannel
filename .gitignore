@@ -1,0 +1,4 @@
+# ignore examples file
+examples/
+# ignore .npy files
+*.npy
