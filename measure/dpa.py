@@ -9,6 +9,7 @@ import aes_sub
 
 ignore_tqdm = False  # Whther to not use tqdm progress bar
 plotting = True  # whether to save the trace diff plots
+traces_to_load = 2000
 
 
 def tqdm_sub(x, *args, **kwargs):
@@ -24,7 +25,7 @@ path = r'D:\OneDrive - nyu.edu\temp\data'
 
 print("loading traces...")
 plain_texts, power_traces = process_traces.get_power_trace(
-    num_of_traces=2000, path=path, VCC=5.25)
+    num_of_traces=traces_to_load, path=path, VCC=5.25)
 
 assert len(plain_texts) == len(power_traces)
 
