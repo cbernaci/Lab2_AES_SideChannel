@@ -6,3 +6,5 @@ temp.py
 examples/
 # ignore .npy files
 *.npy
+# ignore data files
+data/
