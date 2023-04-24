@@ -50,11 +50,14 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
             plt.savefig(f'{store_path}/guess_zero_{guess_key_i}.png')
             plt.clf()
     # find the guess_key_i with max difference
-    guess_key.append(np.argmax(max_diffs))
+    # note: the return type of np.argmax is np.int64, which cause trouble when
+    # interpreting the result as a byte
+    guess_key.append(int(np.argmax(max_diffs)))
 
 res = 0
 for guess_key_i in guess_key:
     res += guess_key_i
     res <<= BYTE_SIZE
+res >>= BYTE_SIZE
 
 print(f"the guessed key is:\n\t{res:032x}")
