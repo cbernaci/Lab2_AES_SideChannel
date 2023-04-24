@@ -39,13 +39,13 @@ guess_key = []
 shift = TOTAL_BYTE * BYTE_SIZE
 mask = BYTE_MASK << shift
 for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
-    # the traces will be sum up into those two bins
-    guess_zero = np.zeros_like(power_traces[0])
-    guess_one = np.zeros_like(power_traces[0])
     shift -= BYTE_SIZE
     mask >>= BYTE_SIZE
     max_diffs = np.zeros(256)
     for guess_key_i in tqdm.tqdm(range(BYTE_MASK + 1), leave=False, desc=f"guessing byte {TOTAL_BYTE - byte_i}"):
+        # the traces will be sum up into those two bins
+        guess_zero = np.zeros_like(power_traces[0])
+        guess_one = np.zeros_like(power_traces[0])
         for i, plain_text in enumerate(plain_texts):
             plain_text_i = (plain_text & mask) >> shift
             bit = aes_sub.subbytes(guess_key_i, plain_text_i) & 1
@@ -59,13 +59,14 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
             if not os.path.exists(store_path):
                 os.makedirs(store_path)
             plt.title(f'guess_key_i = {guess_key_i}')
-            plt.plot(guess_zero, label='guess_zero')
-            plt.savefig(f'{store_path}/guess_zero_{guess_key_i}.png')
+            plt.plot((guess_zero - guess_one), label='diff')
+            plt.savefig(f'{store_path}/diff_{guess_key_i}.png')
             plt.clf()
     # find the guess_key_i with max difference
     # note: the return type of np.argmax is np.int64, which cause trouble when
     # interpreting the result as a byte
     guess_key.append(int(np.argmax(max_diffs)))
+    print(f"guess_key_i = {guess_key[-1]:02x}")  # TODO: remove this line
 
 res = 0
 for guess_key_i in guess_key:
