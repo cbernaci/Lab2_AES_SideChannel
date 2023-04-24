@@ -42,6 +42,9 @@ def get_power_trace(num_of_traces, path, VCC):
                 elif len(trace) > len(power_traces[0]):
                     # if longer, truncate
                     trace = trace[:len(power_traces[0])]
+            else:
+                # exclude last 10% of the trace to avoid the end of the trace
+                trace = trace[:int(len(trace)*0.9)]
             # note: the resistance value doesn't matter, since
             # P = IV = (VCC-V) * (V/R) is proportional to (VCC-V) * V
             power_traces.append((VCC - trace) * trace)
