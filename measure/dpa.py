@@ -7,13 +7,24 @@ import tqdm
 import process_traces
 import aes_sub
 
+ignore_tqdm = False  # Whther to not use tqdm progress bar
 plotting = True  # whether to save the trace diff plots
+
+
+def tqdm_sub(x, *args, **kwargs):
+    return x
+
+
+if ignore_tqdm:
+    tqdm.tqdm = tqdm_sub
+
 # Define the path to the directory containing the algorithm subfolders
 # Change this to your trace path
 path = r'D:\OneDrive - nyu.edu\temp\data'
 
+print("loading traces...")
 plain_texts, power_traces = process_traces.get_power_trace(
-    num_of_traces=10, path=path, VCC=5.25)
+    num_of_traces=2000, path=path, VCC=5.25)
 
 assert len(plain_texts) == len(power_traces)
 
@@ -21,6 +32,7 @@ BYTE_SIZE = 8
 BYTE_MASK = 0xff
 TOTAL_BYTE = 16
 
+print("guessing key...")
 # guess the key by bytes, from the higher byte to the lower byte
 guess_key = []
 shift = TOTAL_BYTE * BYTE_SIZE
