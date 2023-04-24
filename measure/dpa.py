@@ -7,7 +7,7 @@ import tqdm
 import process_traces
 import aes_sub
 
-ignore_tqdm = False  # Whther to not use tqdm progress bar
+ignore_tqdm = False  # whether to not use tqdm progress bar
 plotting = True  # whether to save the trace diff plots
 traces_to_load = 2000
 
