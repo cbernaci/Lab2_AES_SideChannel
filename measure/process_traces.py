@@ -1,7 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import os
-import time
+import random
+
+import numpy as np
 
 
 def get_power_trace(num_of_traces, path, VCC):
@@ -16,9 +16,11 @@ def get_power_trace(num_of_traces, path, VCC):
 
     power_traces = []
     plaintext_lst = []
+    
+    random_traces = random.sample(os.listdir(path), num_of_traces)
 
     # Loop over the directory and process the first num_of_traces traces
-    for dirname in os.listdir(path)[:num_of_traces]:
+    for dirname in random_traces:
         if dirname.endswith('.npy'):
             plain_text = dirname[:-4]
             plaintext_lst.append(int(plain_text, 16))
