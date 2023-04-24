@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 import tqdm
@@ -5,6 +7,7 @@ import tqdm
 import process_traces
 import aes_sub
 
+plotting = True  # whether to save the trace diff plots
 # Define the path to the directory containing the algorithm subfolders
 # Change this to your trace path
 path = r'D:\OneDrive - nyu.edu\temp\data'
@@ -38,6 +41,14 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
             else:
                 guess_one += power_traces[i]
         max_diffs[guess_key_i] = np.max(np.abs(guess_zero - guess_one))
+        if plotting:
+            store_path = f"data/byte{byte_i}"
+            if not os.path.exists(store_path):
+                os.makedirs(store_path)
+            plt.title(f'guess_key_i = {guess_key_i}')
+            plt.plot(guess_zero, label='guess_zero')
+            plt.savefig(f'{store_path}/guess_zero_{guess_key_i}.png')
+            plt.clf()
     # find the guess_key_i with max difference
     guess_key.append(np.argmax(max_diffs))
 
