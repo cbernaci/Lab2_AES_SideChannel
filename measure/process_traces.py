@@ -29,10 +29,11 @@ def get_power_trace(num_of_traces, path, VCC):
             trace, trigger = np.load(full_path)
             start_i = 0
             for i in range(len(trigger)):
-                if trigger[i] > 1:
+                if trigger[i] > 3:
                     start_i = i
                     break
-            trace = trace[start_i:]
+            # TODO: exclude the first 2500 samples to avoid the trigger
+            trace = trace[start_i+2500:]
             if power_traces:
                 # if power_traces is not empty, make later traces the same size as the first one
                 if len(trace) < len(power_traces[0]):
@@ -43,8 +44,8 @@ def get_power_trace(num_of_traces, path, VCC):
                     # if longer, truncate
                     trace = trace[:len(power_traces[0])]
             else:
-                # exclude last 10% of the trace to avoid the end of the trace
-                trace = trace[:int(len(trace)*0.9)]
+                # exclude last 25% of the trace to avoid the end of the trace
+                trace = trace[:int(len(trace)*0.75)]
             # note: the resistance value doesn't matter, since
             # P = IV = (VCC-V) * (V/R) is proportional to (VCC-V) * V
             power_traces.append((VCC - trace) * trace)
