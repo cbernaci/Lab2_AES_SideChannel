@@ -25,6 +25,7 @@ import numpy as np
 import serial
 
 import port_helper
+from aes import AES
 
 from pydwf import (DwfLibrary, DwfEnumConfigInfo, DwfAcquisitionMode,
                    DwfTriggerSource, DwfAnalogInTriggerType, DwfTriggerSlope,
@@ -40,6 +41,31 @@ DEFAULT_BAUDRATE = 115200
 DEFAULT_TIMEOUT = 0.1
 
 data_path = r"C:\Users\Jerry\OneDrive - nyu.edu\temp\data\meas2"
+
+
+aes = AES(False, False)
+KNOWN_KEY = "80000000000000000000000000000000"
+
+
+def save_trace(receive, trace):
+    """
+    Save the trace to a .npy file with the name the same as the plain text.
+    """
+    # TODO
+    if len(receive) != 64:
+        print("WARNING - data length not 64, trace not saved")
+        return
+    plain_text = receive[:32]
+    cipher_text = receive[32:]
+    res = aes.encrypt_string(plain_text, KNOWN_KEY)
+    if res != AES.string_to_block(cipher_text):
+        print(
+            f"WARNING - plain text {plain_text} and cipher text {cipher_text} not match, trace not saved")
+        # TODO: remove this line after debugging
+        raise ValueError()
+        return
+
+    np.save(f"{data_path}/{plain_text.zfill(32)}.npy", trace)
 
 
 def open_serial(port, baudrate, timeout):
@@ -101,6 +127,8 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         analogIn.triggerLevelSet(trigger_level)
 
     print("Start measuring")
+    # Start acquisition sequence
+    analogIn.configure(False, True)
 
     try:
         while True:
@@ -113,11 +141,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
 
             total_samples_lost = total_samples_corrupted = 0
 
-            # Start acquisition sequence
-            analogIn.configure(False, True)
-
             # send a pulse to start measurement
-            time.sleep(0.1)
             send_pulse()
 
             # timeout measure traces
@@ -157,23 +181,28 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                     digitalIO.outputSet(0)
 
                     # read plain text (HEX format) from serial port
-                    plain_text = ser.readline().decode("utf-8").strip()
-                    print("Plain text received: {}".format(plain_text))
+                    receive_text = ser.readline().decode("utf-8").strip()
+                    print("Text received: {}".format(receive_text))
+
+                    # Start acquisition, waiting for trigger
+                    analogIn.configure(False, True)
 
                     if total_samples_lost != 0:
                         print(
                             f"WARNING - {total_samples_lost} samples were lost! Reduce sample frequency.")
                         print("Not saving this data")
+                        # sleep for a while to make sure io goes low
+                        time.sleep(0.1)
                     elif total_samples_corrupted != 0:
                         print(
                             f"WARNING - {total_samples_corrupted} samples could be corrupted! Reduce sample frequency.")
                         print("Not saving this data")
+                        # sleep for a while to make sure io goes low
+                        time.sleep(0.1)
                     else:
                         # Concatenate all acquired samples
                         samples = np.concatenate(samples).T
-                        # save data to a npy file
-                        np.save(
-                            "{}/{}.npy".format(data_path, plain_text.zfill(32)), samples)
+                        save_trace(receive=receive_text, trace=samples)
                     break
                 elif time.perf_counter() - start_time > 1:
                     # Stop acquisition sequence
