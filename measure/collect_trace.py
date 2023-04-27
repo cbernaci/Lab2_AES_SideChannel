@@ -12,11 +12,11 @@ wire connection:
 Description:
     The code pulse digital pin 0 to high to signal the FPGA to start AES 
     encryption, meanwhile start the Analog Discovery 2 to measure the voltage 
-    across the 0.25-ohm resistor. When the Serial receives the data from Arduino,
-    it means the AES encryption is done, and the sent data is the plain text for
-    the encryption. The voltage trace will be stored in a .npy file with the 
-    name the same as the plain text. Further analysis will be done in other 
-    scripts.
+    across the 0.25-ohm resistor. When the Serial receives the data from 
+    Arduino, it means the AES encryption is done, and the sent data is the plain
+    text for the encryption. The voltage trace will be stored in a .npy file 
+    with the name the same as the plain text. Further analysis will be done in 
+    other scripts.
 """
 
 import argparse
@@ -51,19 +51,20 @@ def save_trace(receive, trace):
     """
     Save the trace to a .npy file with the name the same as the plain text.
     """
-    # TODO
     if len(receive) != 64:
-        print("WARNING - data length not 64, trace not saved")
+        print("WARNING - receive text length not 64, trace not saved")
         return
     plain_text = receive[:32]
     cipher_text = receive[32:]
     res = aes.encrypt_string(plain_text, KNOWN_KEY)
     if res != AES.string_to_block(cipher_text):
+        print(f"plain text {plain_text} and cipher text {cipher_text}")
         print(
-            f"WARNING - plain text {plain_text} and cipher text {cipher_text} not match, trace not saved")
-        # TODO: remove this line after debugging
-        raise ValueError()
+            f"WARNING - cipher text {cipher_text} and expectation "
+            f"{AES.block_to_string(res)} not match, trace not saved")
         return
+    else:
+        print("saved!")
 
     np.save(f"{data_path}/{plain_text.zfill(32)}.npy", trace)
 
@@ -115,10 +116,9 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     analogIn.frequencySet(sample_frequency)
     analogIn.recordLengthSet(record_length)
 
-    # TODO: might be able to remove the trigger completely
     if trigger_flag:
         # Set up trigger for the analog input instrument.
-        # We will trigger on the rising transitions of CH2 (the "cosine" channel) through 0V.
+        # We will trigger on the rising transitions of CH2
         analogIn.triggerSourceSet(DwfTriggerSource.DetectorAnalogIn)
         analogIn.triggerChannelSet(CH2)
         analogIn.triggerTypeSet(DwfAnalogInTriggerType.Edge)
@@ -147,7 +147,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
             # timeout measure traces
             start_time = time.perf_counter()
 
-            # Inner loop: single acquisition, receive data from AnalogIn instrument and display it.
+            # Inner loop: single acquisition, receive data from AnalogIn
             while True:
 
                 # status is not used, only to read data
@@ -157,13 +157,6 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
 
                 total_samples_lost += current_samples_lost
                 total_samples_corrupted += current_samples_corrupted
-
-                if current_samples_lost != 0:
-                    # Append NaN samples as placeholders for lost samples.
-                    # This follows the Digilent example.
-                    # We haven't verified yet that this is the proper way to handle lost samples.
-                    lost_samples = np.full((current_samples_lost, 2), np.nan)
-                    samples.append(lost_samples)
 
                 if current_samples_available != 0:
                     # Append samples read from both channels.
@@ -205,8 +198,6 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                         save_trace(receive=receive_text, trace=samples)
                     break
                 elif time.perf_counter() - start_time > 1:
-                    # Stop acquisition sequence
-                    analogIn.configure(False, False)
                     # output low
                     digitalIO.outputSet(0)
                     print("timeout!!! not saving data")
