@@ -80,7 +80,7 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
     # note: the return type of np.argmax is np.int64, which cause trouble when
     # interpreting the result as a byte
     guess_key.append(int(np.argmax(max_diffs)))
-    print(f"guess_key_i = {guess_key[-1]:02x}")  # TODO: remove this line
+    last_guess_key = f"{guess_key[-1]:02x}"
 
 res = 0
 for guess_key_i in guess_key:
