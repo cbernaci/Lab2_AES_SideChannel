@@ -39,6 +39,8 @@ DEFAULT_PORT = 'COM5'  # TODO: change COM port to match your setup
 DEFAULT_BAUDRATE = 115200
 DEFAULT_TIMEOUT = 0.1
 
+data_path = r"C:\Users\Jerry\OneDrive - nyu.edu\temp\data\meas2"
+
 
 def open_serial(port, baudrate, timeout):
     # open serial connection
@@ -171,7 +173,7 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                         samples = np.concatenate(samples).T
                         # save data to a npy file
                         np.save(
-                            "data/{}.npy".format(plain_text.zfill(32)), samples)
+                            "{}/{}.npy".format(data_path, plain_text.zfill(32)), samples)
                     break
                 elif time.perf_counter() - start_time > 1:
                     # Stop acquisition sequence
