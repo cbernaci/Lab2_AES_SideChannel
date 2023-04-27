@@ -38,11 +38,15 @@ print("guessing key...")
 guess_key = []
 shift = TOTAL_BYTE * BYTE_SIZE
 mask = BYTE_MASK << shift
+last_guess_key = None
 for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
     shift -= BYTE_SIZE
     mask >>= BYTE_SIZE
     max_diffs = np.zeros(256)
-    for guess_key_i in tqdm.tqdm(range(BYTE_MASK + 1), leave=False, desc=f"guessing byte {TOTAL_BYTE - byte_i}"):
+    # TODO: remove this after collecting new traces
+    if byte_i >= 2:
+        break
+    for guess_key_i in tqdm.tqdm(range(BYTE_MASK + 1), leave=False, desc=f"guessing byte {TOTAL_BYTE - byte_i}, last guess: {last_guess_key}"):
         # the traces will be sum up into those two bins
         guess_zero = np.zeros_like(power_traces[0])
         guess_one = np.zeros_like(power_traces[0])
@@ -57,7 +61,12 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
             else:
                 guess_one += power_traces[i]
                 one_count += 1
-        diff = guess_zero/zero_count - guess_one/one_count
+        if zero_count == 0:
+            diff = guess_one/one_count
+        elif one_count == 0:
+            diff = guess_zero/zero_count
+        else:
+            diff = guess_zero/zero_count - guess_one/one_count
         max_diffs[guess_key_i] = np.max(np.abs(diff))
         if plotting:
             store_path = f"data/byte{byte_i}"
