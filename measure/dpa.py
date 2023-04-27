@@ -46,20 +46,25 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
         # the traces will be sum up into those two bins
         guess_zero = np.zeros_like(power_traces[0])
         guess_one = np.zeros_like(power_traces[0])
+        zero_count = 0
+        one_count = 0
         for i, plain_text in enumerate(plain_texts):
             plain_text_i = (plain_text & mask) >> shift
             bit = aes_sub.subbytes(guess_key_i, plain_text_i) & 1
             if bit == 0:
                 guess_zero += power_traces[i]
+                zero_count += 1
             else:
                 guess_one += power_traces[i]
-        max_diffs[guess_key_i] = np.max(np.abs(guess_zero - guess_one))
+                one_count += 1
+        diff = guess_zero/zero_count - guess_one/one_count
+        max_diffs[guess_key_i] = np.max(np.abs(diff))
         if plotting:
             store_path = f"data/byte{byte_i}"
             if not os.path.exists(store_path):
                 os.makedirs(store_path)
             plt.title(f'guess_key_i = {guess_key_i}')
-            plt.plot((guess_zero - guess_one), label='diff')
+            plt.plot(diff, label='diff')
             plt.savefig(f'{store_path}/diff_{guess_key_i}.png')
             plt.clf()
     # find the guess_key_i with max difference
