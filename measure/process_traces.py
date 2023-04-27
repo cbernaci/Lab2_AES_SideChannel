@@ -4,9 +4,11 @@ import random
 import numpy as np
 
 
-def get_power_trace(num_of_traces, path, VCC):
+def get_power_trace(num_of_traces, path, VCC, keep_percent=0.75):
     """
     get the power traces as np array
+    
+    keep_percent: how many percentage of trace to keep, last part are cut off
 
     return: plaintext_lst, power_traces
     """
@@ -32,11 +34,11 @@ def get_power_trace(num_of_traces, path, VCC):
                 if trigger[i] > 3:
                     start_i = i
                     break
-            # TODO: exclude the first 2500 samples to avoid the trigger
-            trace = trace[start_i+2500:]
+            trace = trace[start_i:]
             if power_traces:
                 # if power_traces is not empty, make later traces the same size as the first one
                 if len(trace) < len(power_traces[0]):
+                    print("Warning: zeros pad to traces", len(power_traces))
                     # if shorter, pad with 0s
                     trace = np.pad(
                         trace, (0, len(power_traces[0]) - len(trace)), 'constant')
@@ -45,7 +47,7 @@ def get_power_trace(num_of_traces, path, VCC):
                     trace = trace[:len(power_traces[0])]
             else:
                 # exclude last 25% of the trace to avoid the end of the trace
-                trace = trace[:int(len(trace)*0.75)]
+                trace = trace[:int(len(trace)*keep_percent)]
             # note: the resistance value doesn't matter, since
             # P = IV = (VCC-V) * (V/R) is proportional to (VCC-V) * V
             power_traces.append((VCC - trace) * trace)
