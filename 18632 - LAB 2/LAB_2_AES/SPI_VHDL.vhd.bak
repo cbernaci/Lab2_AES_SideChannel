@@ -1,0 +1,192 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity spi_mod is 
+	port (
+		clk : in std_logic;
+		rst : in std_logic;
+		data_byte : in std_logic_vector(127 downto 0);
+		ss_dec : out std_logic;
+		sck : out std_logic;
+		mosi_reg : out std_logic);
+end spi_mod;
+
+architecture behavioral of spi_mod is
+
+-- Constants
+constant DEBOUNCE_DELAY : unsigned(31 downto 0) := x"0007A120";
+
+-- Debounce Signals
+-- signal SD_button_done : std_logic := '0';
+-- signal SD_click : std_logic := '0';
+signal trigger : std_logic := '0';
+
+signal f_btn1 : std_logic := '0';
+signal f_btn2 : std_logic := '0';
+
+signal spi_counter : unsigned(15 downto 0) := (others => '0');
+signal SD_button_count : unsigned(31 downto 0) := (others => '0');
+
+signal spi_c_reset : std_logic := '0';
+signal start_sck : std_logic := '0';
+
+signal ss_dec_sig : std_logic := '0';
+signal sck_sig : std_logic := '0';
+signal tran_counter_sig : unsigned(11 downto 0) := (others => '0');	-- CHECK
+
+signal bc : integer := 128;
+
+signal data_shift : std_logic_vector(127 downto 0) := (others => '0');
+
+begin
+
+-- Declarations
+ss_dec <= ss_dec_sig;
+sck <= sck_sig;
+
+data_shift(127 downto 120) <= data_byte(7 downto 0);
+data_shift(119 downto 112) <= data_byte(15 downto 8);
+data_shift(111 downto 104) <= data_byte(23 downto 16);
+data_shift(103 downto 96) <= data_byte(31 downto 24);
+data_shift(95 downto 88) <= data_byte(39 downto 32);
+data_shift(87 downto 80) <= data_byte(47 downto 40);
+data_shift(79 downto 72) <= data_byte(55 downto 48);
+data_shift(71 downto 64) <= data_byte(63 downto 56);
+data_shift(63 downto 56) <= data_byte(71 downto 64);
+data_shift(55 downto 48) <= data_byte(79 downto 72);
+data_shift(47 downto 40) <= data_byte(87 downto 80);
+data_shift(39 downto 32) <= data_byte(95 downto 88);
+data_shift(31 downto 24) <= data_byte(103 downto 96);
+data_shift(23 downto 16) <= data_byte(111 downto 104);
+data_shift(15 downto 8) <= data_byte(119 downto 112);
+data_shift(7 downto 0) <= data_byte(127 downto 120);
+
+process (clk)
+	begin
+		if rising_edge(clk) then
+			f_btn1 <= rst;
+		end if;
+		end process;
+
+process (clk)
+	begin	
+		if rising_edge(clk) then
+			f_btn2 <= f_btn1;
+		end if;
+		end process;
+
+process (clk)
+	begin	
+		if rising_edge(clk) then
+			if ((f_btn1 = '1') AND (f_btn2 = '0')) then
+				trigger <= '1';
+			else 
+				trigger <= '0';
+			end if;
+		end if;
+		end process;
+
+-- SPI CORE
+process (clk)
+	begin	
+		if rising_edge(clk) then
+			if (trigger = '1') then
+				ss_dec_sig <= '0';
+			elsif ((tran_counter_sig = x"81") AND (spi_counter = x"28")) then -- x"28" == 40 / x"81" == 129
+				ss_dec_sig <= '1';
+			else 
+				ss_dec_sig <= ss_dec_sig;
+			end if;
+		end if;
+	end process;
+
+
+process (clk)
+begin	
+	if rising_edge(clk) then
+		if ((ss_dec_sig = '0') AND (spi_c_reset = '0')) then
+			spi_counter <= spi_counter + 1;
+		elsif ((ss_dec_sig = '1') OR (spi_c_reset = '1')) then
+			spi_counter <= (others => '0');
+		else 
+			spi_counter <= spi_counter;
+		end if;
+	end if;
+end process;
+
+process (clk)
+begin	
+	if rising_edge(clk) then
+		if (spi_counter = x"30") then -- x"30" == 48
+			spi_c_reset <= '1';
+		else
+			spi_c_reset <= '0';
+		end if;
+	end if;
+	end process;
+
+process (clk)
+begin	
+	if rising_edge(clk) then
+		if ((spi_counter = x"28") AND (tran_counter_sig /= x"81")) then -- x"28" == 40 / x"81" == 129
+			start_sck <= '1';
+		elsif (tran_counter_sig = x"81") then
+			start_sck <= '0';
+		else 
+			start_sck <= start_sck;
+		end if;
+	end if;
+	end process;
+
+process (clk)
+begin	
+	if rising_edge(clk) then
+		if ((spi_counter = x"0") AND (start_sck = '1')) then
+			sck_sig <= '1';
+		elsif (spi_counter = x"18") then -- 0x"18" == 24
+			sck_sig <= '0';
+		else
+			sck_sig <= sck_sig;
+		end if;
+	end if;
+	end process;
+
+process (clk)
+begin	
+	if rising_edge(clk) then
+		if (spi_counter = x"18") then --- 0x"18" == 24
+			tran_counter_sig <= tran_counter_sig + 1;
+		elsif (trigger = '1') then
+			tran_counter_sig <= (others => '0');
+		else
+			tran_counter_sig <= tran_counter_sig;
+		end if;
+	end if;
+	end process;
+
+process (clk)
+begin
+	if rising_edge(clk) then
+		if (spi_counter = x"18") then -- 0x"18" == 24
+			bc <= bc - 1;
+		elsif (trigger = '1') then
+			bc <= 128;
+		else
+			bc <= bc;
+		end if;
+	end if;
+	end process;
+
+process (clk)
+begin
+	if rising_edge(clk) then
+		if ((tran_counter_sig <= x"80") AND (tran_counter_sig >= x"1")) then
+			mosi_reg <= data_shift(bc);
+		else
+			mosi_reg <= '0';
+		end if;
+	end if;
+	end process;
+	
+end architecture behavioral;
