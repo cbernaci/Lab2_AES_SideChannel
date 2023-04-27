@@ -7,7 +7,7 @@ import numpy as np
 def get_power_trace(num_of_traces, path, VCC, keep_percent=0.75):
     """
     get the power traces as np array
-    
+
     keep_percent: how many percentage of trace to keep, last part are cut off
 
     return: plaintext_lst, power_traces
@@ -18,7 +18,7 @@ def get_power_trace(num_of_traces, path, VCC, keep_percent=0.75):
 
     power_traces = []
     plaintext_lst = []
-    
+
     random_traces = random.sample(os.listdir(path), num_of_traces)
 
     # Loop over the directory and process the first num_of_traces traces
@@ -53,3 +53,12 @@ def get_power_trace(num_of_traces, path, VCC, keep_percent=0.75):
             power_traces.append((VCC - trace) * trace)
 
     return np.array(plaintext_lst), np.array(power_traces)
+
+
+if __name__ == "__main__":
+    # randomly get one power trace and plot it
+    p, power = get_power_trace(
+        1, r"C:\Users\Jerry\OneDrive - nyu.edu\temp\data\meas2", VCC=5.25)
+    import matplotlib.pyplot as plt
+    plt.plot(power[0])
+    plt.show()
