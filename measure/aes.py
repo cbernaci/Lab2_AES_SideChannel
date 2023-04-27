@@ -949,6 +949,11 @@ class AES():
     def string_to_block(string):
         assert len(string) == 32
         return struct.unpack(">4I", bytes.fromhex(string))
+    
+    @staticmethod
+    def block_to_string(block):
+        assert len(block) == 4
+        return struct.pack(">4I", *block).hex()
 
 
 # -------------------------------------------------------------------
