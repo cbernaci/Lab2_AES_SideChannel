@@ -1,0 +1,12 @@
+Power Analyzer Status : Successful - Thu Apr 27 17:36:33 2023
+Quartus Prime Version : 22.1std.0 Build 915 10/25/2022 SC Lite Edition
+Revision Name : LAB2_AES_VHDL
+Top-level Entity Name : aes_top
+Family : Cyclone V
+Device : 5CEBA4F23C7
+Power Models : Final
+Total Thermal Power Dissipation : 204.27 mW
+Core Dynamic Thermal Power Dissipation : 6.22 mW
+Core Static Thermal Power Dissipation : 193.91 mW
+I/O Thermal Power Dissipation : 4.15 mW
+Power Estimation Confidence : Low: user provided insufficient toggle rate data
