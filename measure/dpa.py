@@ -9,7 +9,7 @@ import aes_sub
 
 ignore_tqdm = False  # whether to not use tqdm progress bar
 plotting = True  # whether to save the trace diff plots
-traces_to_load = 2000
+traces_to_load = 0
 
 
 def tqdm_sub(x, *args, **kwargs):
@@ -21,13 +21,11 @@ if ignore_tqdm:
 
 # Define the path to the directory containing the algorithm subfolders
 # Change this to your trace path
-path = r'D:\OneDrive - nyu.edu\temp\data'
+path = r'D:\OneDrive - nyu.edu\temp\data\meas with one aes quick clock'
 
 print("loading traces...")
 plain_texts, power_traces = process_traces.get_power_trace(
-    num_of_traces=traces_to_load, path=path, VCC=5.25)
-
-assert len(plain_texts) == len(power_traces)
+    num_of_traces=traces_to_load, path=path, VCC=5.25, keep_percent=0.5)
 
 BYTE_SIZE = 8
 BYTE_MASK = 0xff
@@ -43,9 +41,6 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
     shift -= BYTE_SIZE
     mask >>= BYTE_SIZE
     max_diffs = np.zeros(256)
-    # TODO: remove this after collecting new traces
-    if byte_i >= 2:
-        break
     for guess_key_i in tqdm.tqdm(range(BYTE_MASK + 1), leave=False, desc=f"guessing byte {TOTAL_BYTE - byte_i}, last guess: {last_guess_key}"):
         # the traces will be sum up into those two bins
         guess_zero = np.zeros_like(power_traces[0])
@@ -62,8 +57,10 @@ for byte_i in tqdm.tqdm(range(TOTAL_BYTE), desc="guessing key"):
                 guess_one += power_traces[i]
                 one_count += 1
         if zero_count == 0:
+            # TODO: might not be the best way to handle this
             diff = guess_one/one_count
         elif one_count == 0:
+            # TODO: might not be the best way to handle this
             diff = guess_zero/zero_count
         else:
             diff = guess_zero/zero_count - guess_one/one_count
@@ -89,3 +86,4 @@ for guess_key_i in guess_key:
 res >>= BYTE_SIZE
 
 print(f"the guessed key is:\n\t{res:032x}")
+# 3515b6daa0d1e0a7222b2e98ce5fdf47
