@@ -63,8 +63,6 @@ def save_trace(receive, trace):
             f"WARNING - cipher text {cipher_text} and expectation "
             f"{AES.block_to_string(res)} not match, trace not saved")
         return
-    else:
-        print("saved!")
 
     np.save(f"{data_path}/{plain_text.zfill(32)}.npy", trace)
 
@@ -89,10 +87,6 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
     digitalIO.reset()
     digitalIO.outputEnableSet(output_pin)
     digitalIO.outputSet(0)
-
-    def send_pulse():
-        # output high
-        digitalIO.outputSet(output_pin)
 
     if trigger_flag:
         # Position of the first sample relative to the trigger.
@@ -127,11 +121,12 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
         analogIn.triggerLevelSet(trigger_level)
 
     print("Start measuring")
-    # Start acquisition sequence
-    analogIn.configure(False, True)
 
     try:
         while True:
+            # Start acquisition sequence
+            analogIn.configure(False, True)
+            time.sleep(0.1)
 
             if ser.inWaiting() > 0:
                 print("extra data read from serial: ",
@@ -141,8 +136,9 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
 
             total_samples_lost = total_samples_corrupted = 0
 
-            # send a pulse to start measurement
-            send_pulse()
+            # send high to start the next AES encryption on FPGA
+            # output high
+            digitalIO.outputSet(output_pin)
 
             # timeout measure traces
             start_time = time.perf_counter()
@@ -177,21 +173,14 @@ def run_demo(device, sample_frequency, record_length, trigger_flag, measure_rang
                     receive_text = ser.readline().decode("utf-8").strip()
                     print("Text received: {}".format(receive_text))
 
-                    # Start acquisition, waiting for trigger
-                    analogIn.configure(False, True)
-
                     if total_samples_lost != 0:
                         print(
                             f"WARNING - {total_samples_lost} samples were lost! Reduce sample frequency.")
                         print("Not saving this data")
-                        # sleep for a while to make sure io goes low
-                        time.sleep(0.1)
                     elif total_samples_corrupted != 0:
                         print(
                             f"WARNING - {total_samples_corrupted} samples could be corrupted! Reduce sample frequency.")
                         print("Not saving this data")
-                        # sleep for a while to make sure io goes low
-                        time.sleep(0.1)
                     else:
                         # Concatenate all acquired samples
                         samples = np.concatenate(samples).T
