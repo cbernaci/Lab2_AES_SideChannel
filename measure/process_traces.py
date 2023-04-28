@@ -19,14 +19,15 @@ def get_power_trace(num_of_traces, path, VCC, keep_percent=0.75):
     power_traces = []
     plaintext_lst = []
 
-    random_traces = random.sample(os.listdir(path), num_of_traces)
+    if num_of_traces > len(os.listdir(path)) or num_of_traces <= 0:
+        voltage_traces = os.listdir(path)
+    else:
+        voltage_traces = random.sample(os.listdir(path), num_of_traces)
 
     # Loop over the directory and process the first num_of_traces traces
-    for dirname in random_traces:
+    for dirname in voltage_traces:
         if dirname.endswith('.npy'):
             plain_text = dirname[:-4]
-            plaintext_lst.append(int(plain_text, 16))
-
             full_path = os.path.join(path, dirname)
             trace, trigger = np.load(full_path)
             start_i = 0
@@ -38,10 +39,9 @@ def get_power_trace(num_of_traces, path, VCC, keep_percent=0.75):
             if power_traces:
                 # if power_traces is not empty, make later traces the same size as the first one
                 if len(trace) < len(power_traces[0]):
-                    print("Warning: zeros pad to traces", len(power_traces))
+                    print(f"Warning: trace {plain_text} too short, ignored")
                     # if shorter, pad with 0s
-                    trace = np.pad(
-                        trace, (0, len(power_traces[0]) - len(trace)), 'constant')
+                    continue
                 elif len(trace) > len(power_traces[0]):
                     # if longer, truncate
                     trace = trace[:len(power_traces[0])]
@@ -50,9 +50,12 @@ def get_power_trace(num_of_traces, path, VCC, keep_percent=0.75):
                 trace = trace[:int(len(trace)*keep_percent)]
             # note: the resistance value doesn't matter, since
             # P = IV = (VCC-V) * (V/R) is proportional to (VCC-V) * V
+            # TODO: maybe use voltage directly would be better?
+            plaintext_lst.append(int(plain_text, 16))
             power_traces.append((VCC - trace) * trace)
 
-    return np.array(plaintext_lst), np.array(power_traces)
+    assert len(plaintext_lst) == len(power_traces)
+    return plaintext_lst, np.array(power_traces)
 
 
 if __name__ == "__main__":
