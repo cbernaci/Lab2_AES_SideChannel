@@ -93,9 +93,6 @@ if not SAVED:
     plain_texts, trace = process_traces.get_power_trace(
         num_of_traces=0, path=f"{path}\meas2", VCC=5.25, keep_percent=0.5)
 
-    N = len(trace)
-    T = len(trace[0])
-
     plain_texts_bytes = []
     for i, c in enumerate(plain_texts):
         ci = []
@@ -109,8 +106,12 @@ if not SAVED:
     np.save(f'{path}/trace.npy', trace)
     print("saved")
 else:
+    print("loading saved data...")
     plain_texts_bytes = np.load(f'{path}/plain_texts_bytes.npy')
     trace = np.load(f'{path}/trace.npy')
+
+N = len(trace)
+T = len(trace[0])
 
 key = ['First round']
 
