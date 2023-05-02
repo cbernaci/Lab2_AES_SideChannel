@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import tqdm
 
 import process_traces
 import aes_sub
@@ -19,15 +18,15 @@ def tqdm_sub(x, *args, **kwargs):
 
 
 if not use_tqdm:
-    tqdm.tqdm = tqdm_sub
-    tqdm.tqdm.write = print
+    tqdm = tqdm_sub
+    tqdm.write = print
 else:
     try:
-        import tqdm
+        from tqdm import tqdm
     except ImportError:
         use_tqdm = False
-        tqdm.tqdm = tqdm_sub
-        tqdm.tqdm.write = print
+        tqdm = tqdm_sub
+        tqdm.write = print
 
 # Define the path to the directory containing the algorithm subfolders
 # Change this to your trace path
@@ -61,18 +60,17 @@ trace_length = len(traces[0])
 assert (trace_count == len(plain_texts_bytes))
 
 print("guessing key...")
-for bit_use in tqdm.tqdm(range(B8)):
+for bit_use in tqdm(range(B8)):
     # guess the key by bytes, from the higher byte to the lower byte
     guess_key = []
     # Mean delta accumulation of traces
     # This is just for visualization
     mean_delta_accu_visualization = []
     last_guess_key = ''
-    # tqdm.tqdm.write(f"Use bit {bit_use}, guess key: ", end='')
-    for byte_i in tqdm.tqdm(range(B16), desc=f"Use bit {bit_use}", leave=False):
+    for byte_i in tqdm(range(B16), desc=f"Use bit {bit_use}", leave=False):
         max_diffs = np.zeros(256)
         mean_delta_accu_visualization.append([])
-        for guess_key_i in tqdm.tqdm(range(B256), leave=False, desc=f"last key: {last_guess_key}, guessing byte {B16 - byte_i}"):
+        for guess_key_i in tqdm(range(B256), leave=False, desc=f"last key: {last_guess_key}, guessing byte {B16 - byte_i}"):
             # the traces will be sum up into those two bins
             guess_zero = np.zeros_like(traces[0])
             guess_one = np.zeros_like(traces[0])
@@ -110,5 +108,5 @@ for bit_use in tqdm.tqdm(range(B8)):
         res <<= B8
     res >>= B8
 
-    tqdm.tqdm.write(f"Round {bit_use}: the guessed key is:\n\t{res:032x}")
+    tqdm.write(f"Round {bit_use}: the guessed key is:\n\t{res:032x}")
     np.save(f"img/diff_visualization_{bit_use}.npy", np.array(mean_delta_accu_visualization))

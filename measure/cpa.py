@@ -6,7 +6,6 @@ reference: https://www.tandfonline.com/doi/epdf/10.1080/23742917.2016.1231523?ne
 import os
 import numpy as np
 import process_traces
-from tqdm import tqdm
 
 use_tqdm = True  # whether to not use tqdm progress bar
 traces_to_load = 0
@@ -22,15 +21,15 @@ def tqdm_sub(x, *args, **kwargs):
 
 
 if not use_tqdm:
-    tqdm.tqdm = tqdm_sub
-    tqdm.tqdm.write = print
+    tqdm = tqdm_sub
+    tqdm.write = print
 else:
     try:
-        import tqdm
+        from tqdm import tqdm
     except ImportError:
         use_tqdm = False
-        tqdm.tqdm = tqdm_sub
-        tqdm.tqdm.write = print
+        tqdm = tqdm_sub
+        tqdm.write = print
 
 sbox = [
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -130,15 +129,16 @@ trace_count = len(traces)
 trace_length = len(traces[0])
 assert (trace_count == len(plain_texts_bytes))
 
-for const_use in tqdm.tqdm(range(B256), desc="const use"):
+print("guessing key...")
+for const_use in tqdm(range(B256), desc="const use"):
     key = []
     mean_t = np.mean(traces, axis=0)
     last_guess_key = ''
-    for byte_index in tqdm.tqdm(range(B16), desc=f"const use: {const_use}", leave=False):
+    for byte_index in tqdm(range(B16), desc=f"const use: {const_use}", leave=False):
         cpa_output = [0]*B256
         max_cpa = [0]*B256
 
-        for key_guess in tqdm.tqdm(range(B256), desc=f"last key: {last_guess_key}", leave=False):
+        for key_guess in tqdm(range(B256), desc=f"last key: {last_guess_key}", leave=False):
             power_mode = np.zeros(trace_count)
             numerator = np.zeros(trace_length)
             denominator_model = np.zeros(trace_length)
@@ -168,4 +168,4 @@ for const_use in tqdm.tqdm(range(B256), desc="const use"):
         key.append(np.argmax(max_cpa))
         last_guess_key = f"{key[-1]:02x}"
 
-    tqdm.tqdm.write(key)
+    tqdm.write(key)
