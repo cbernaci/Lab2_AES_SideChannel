@@ -9,7 +9,8 @@ use_tqdm = True  # whether to not use tqdm progress bar
 traces_to_load = 0
 B8 = 8
 B16 = 16
-B256 = 0xff
+B256 = 256
+B8_MASK = 0xff
 SIZE = 32
 
 
@@ -46,7 +47,7 @@ else:
     for i, c in enumerate(plain_texts):
         ci = []
         for j in range(int(SIZE/2)):
-            ci.append(c & B256)
+            ci.append(c & B8_MASK)
             c >>= B8
         ci.reverse()
         plain_texts_bytes.append(ci)
@@ -71,7 +72,7 @@ for bit_use in tqdm.tqdm(range(B8)):
     for byte_i in tqdm.tqdm(range(B16), desc=f"Use bit {bit_use}", leave=False):
         max_diffs = np.zeros(256)
         mean_delta_accu_visualization.append([])
-        for guess_key_i in tqdm.tqdm(range(B256 + 1), leave=False, desc=f"last key: {last_guess_key}, guessing byte {B16 - byte_i}"):
+        for guess_key_i in tqdm.tqdm(range(B256), leave=False, desc=f"last key: {last_guess_key}, guessing byte {B16 - byte_i}"):
             # the traces will be sum up into those two bins
             guess_zero = np.zeros_like(traces[0])
             guess_one = np.zeros_like(traces[0])

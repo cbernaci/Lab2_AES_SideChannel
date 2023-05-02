@@ -10,9 +10,10 @@ from tqdm import tqdm
 
 use_tqdm = True  # whether to not use tqdm progress bar
 traces_to_load = 0
+B8 = 8
 B16 = 16
 B256 = 256
-B8 = 8
+B8_MASK = 0xff
 SIZE = 32
 
 
@@ -116,7 +117,7 @@ else:
     for i, c in enumerate(plain_texts):
         ci = []
         for j in range(int(SIZE/2)):
-            ci.append(c & B256)
+            ci.append(c & B8_MASK)
             c >>= B8
         ci.reverse()
         plain_texts_bytes.append(ci)
