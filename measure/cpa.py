@@ -129,41 +129,42 @@ trace_count = len(traces)
 trace_length = len(traces[0])
 assert (trace_count == len(plain_texts_bytes))
 
-key = []
-mean_t = np.mean(traces, axis=0)
-last_guess_key = ''
-for byte_index in tqdm.tqdm(range(B16)):
-    cpa_output = [0]*B256
-    max_cpa = [0]*B256
+for const_use in tqdm.tqdm(range(B256), desc="const use"):
+    key = []
+    mean_t = np.mean(traces, axis=0)
+    last_guess_key = ''
+    for byte_index in tqdm.tqdm(range(B16), desc=f"const use: {const_use}", leave=False):
+        cpa_output = [0]*B256
+        max_cpa = [0]*B256
 
-    for key_guess in tqdm.tqdm(range(B256), desc=f"last key: {last_guess_key}", leave=False):
-        power_mode = np.zeros(trace_count)
-        numerator = np.zeros(trace_length)
-        denominator_model = np.zeros(trace_length)
-        denominator_measured = np.zeros(trace_length)
+        for key_guess in tqdm.tqdm(range(B256), desc=f"last key: {last_guess_key}", leave=False):
+            power_mode = np.zeros(trace_count)
+            numerator = np.zeros(trace_length)
+            denominator_model = np.zeros(trace_length)
+            denominator_measured = np.zeros(trace_length)
 
-        for trace_index in range(trace_count):
-            vij = apply_sbox(
-                plain_texts_bytes[trace_index][byte_index] ^ key_guess)
-            power_mode[trace_index] = HW[vij ^ 250]
+            for trace_index in range(trace_count):
+                vij = apply_sbox(
+                    plain_texts_bytes[trace_index][byte_index] ^ key_guess)
+                power_mode[trace_index] = HW[vij ^ const_use]
 
-        mean_h = np.mean(power_mode)
+            mean_h = np.mean(power_mode)
 
-        for trace_index in range(trace_count):
-            # h - h_bar
-            h_diff = power_mode[trace_index] - mean_h
-            # t - t_bar
-            t_diff = traces[trace_index][:] - mean_t
-            # (h - h_bar)(t - t_bar)
-            numerator += h_diff * t_diff
-            # (h - h_bar)^2
-            denominator_model += h_diff ** 2
-            # (t - t_bar)^2
-            denominator_measured += t_diff ** 2
-        cpa_output[key_guess] = numerator / \
-            np.sqrt(denominator_model*denominator_measured)
-        max_cpa[key_guess] = max(abs(cpa_output[key_guess]))
-    key.append(np.argmax(max_cpa))
-    last_guess_key = f"{key[-1]:02x}"
+            for trace_index in range(trace_count):
+                # h - h_bar
+                h_diff = power_mode[trace_index] - mean_h
+                # t - t_bar
+                t_diff = traces[trace_index][:] - mean_t
+                # (h - h_bar)(t - t_bar)
+                numerator += h_diff * t_diff
+                # (h - h_bar)^2
+                denominator_model += h_diff ** 2
+                # (t - t_bar)^2
+                denominator_measured += t_diff ** 2
+            cpa_output[key_guess] = numerator / \
+                np.sqrt(denominator_model*denominator_measured)
+            max_cpa[key_guess] = max(abs(cpa_output[key_guess]))
+        key.append(np.argmax(max_cpa))
+        last_guess_key = f"{key[-1]:02x}"
 
-print(key)
+    tqdm.tqdm.write(key)
