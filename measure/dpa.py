@@ -111,5 +111,4 @@ for bit_use in tqdm.tqdm(range(B8)):
     res >>= B8
 
     tqdm.tqdm.write(f"Round {bit_use}: the guessed key is:\n\t{res:032x}")
-
-np.save("diff_visualization.npy", np.array(mean_delta_accu_visualization))
+    np.save(f"img/diff_visualization_{bit_use}.npy", np.array(mean_delta_accu_visualization))
