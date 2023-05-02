@@ -33,7 +33,7 @@ if os.path.exists(f'{path}/plain_texts_bytes.npy') and os.path.exists(f'{path}/t
 else:
     print("loading traces...")
     plain_texts, traces = process_traces.get_power_trace(
-        num_of_traces=0, path=path, VCC=5.25, keep_percent=0.5)
+        num_of_traces=traces_to_load, path=path, VCC=5.25, keep_percent=0.5)
 
     plain_texts_bytes = []
     for i, c in enumerate(plain_texts):
