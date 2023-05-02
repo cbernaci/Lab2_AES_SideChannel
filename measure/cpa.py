@@ -3,7 +3,7 @@ correlation power analysis using Hamming weight model and earson correlation coe
 
 reference: https://www.tandfonline.com/doi/epdf/10.1080/23742917.2016.1231523?needAccess=true&role=button
 """
-from matplotlib import pyplot as plt
+import os
 import numpy as np
 import process_traces
 from tqdm import tqdm
@@ -11,11 +11,8 @@ from tqdm import tqdm
 B16 = 16
 B256 = 256
 B8 = 8
-B8_MASK = 0xff
-N = None  # number of traces
-T = None  # number of samples per trace
 SIZE = 32
-SAVED = True
+saved_traces_np = True
 
 sbox = [
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -86,58 +83,60 @@ def apply_inv_sbox(idx):
 assert len(sbox) == B16*B16
 assert len(inv_sbox) == B16*B16
 
-path = r'D:\OneDrive - nyu.edu\temp\data'
+path = r'D:\OneDrive - nyu.edu\temp\data\meas2'
 
-if not SAVED:
+# load in traces
+if os.path.exists(f'{path}/plain_texts_bytes.npy') and os.path.exists(f'{path}/trace.npy'):
+    print("loading saved data...")
+    plain_texts_bytes = np.load(f'{path}/plain_texts_bytes.npy')
+    traces = np.load(f'{path}/trace.npy')
+else:
     print("loading traces...")
-    plain_texts, trace = process_traces.get_power_trace(
-        num_of_traces=0, path=f"{path}\meas2", VCC=5.25, keep_percent=0.5)
+    plain_texts, traces = process_traces.get_power_trace(
+        num_of_traces=0, path=path, VCC=5.25, keep_percent=0.5)
 
     plain_texts_bytes = []
     for i, c in enumerate(plain_texts):
         ci = []
         for j in range(int(SIZE/2)):
-            ci.append(c & B8_MASK)
+            ci.append(c & B256)
             c >>= B8
         ci.reverse()
         plain_texts_bytes.append(ci)
 
     np.save(f'{path}/plain_texts_bytes.npy', plain_texts_bytes)
-    np.save(f'{path}/trace.npy', trace)
-    print("saved")
-else:
-    print("loading saved data...")
-    plain_texts_bytes = np.load(f'{path}/plain_texts_bytes.npy')
-    trace = np.load(f'{path}/trace.npy')
+    np.save(f'{path}/trace.npy', traces)
+    print("saved traces and plain texts")
 
-N = len(trace)
-T = len(trace[0])
+trace_count = len(traces)
+trace_length = len(traces[0])
+assert (trace_count == len(plain_texts_bytes))
 
-key = ['First round']
-
-for byte_index in tqdm(range(B16)):
+key = []
+mean_t = np.mean(traces, axis=0)
+last_guess_key = ''
+for byte_index in tqdm.tqdm(range(B16)):
     cpa_output = [0]*B256
     max_cpa = [0]*B256
 
-    for key_guess in tqdm(range(B256), desc=f"last key: {key[-1]}", leave=False):
-        power_mode = np.zeros(N)
-        numerator = np.zeros(T)
-        denominator_model = np.zeros(T)
-        denominator_measured = np.zeros(T)
+    for key_guess in tqdm.tqdm(range(B256), desc=f"last key: {last_guess_key}", leave=False):
+        power_mode = np.zeros(trace_count)
+        numerator = np.zeros(trace_length)
+        denominator_model = np.zeros(trace_length)
+        denominator_measured = np.zeros(trace_length)
 
-        for trace_index in range(N):
+        for trace_index in range(trace_count):
             vij = apply_sbox(
                 plain_texts_bytes[trace_index][byte_index] ^ key_guess)
             power_mode[trace_index] = HW[vij ^ 250]
 
         mean_h = np.mean(power_mode)
-        mean_t = np.mean(trace, axis=0)
 
-        for trace_index in range(N):
+        for trace_index in range(trace_count):
             # h - h_bar
             h_diff = power_mode[trace_index] - mean_h
             # t - t_bar
-            t_diff = trace[trace_index][:] - mean_t
+            t_diff = traces[trace_index][:] - mean_t
             # (h - h_bar)(t - t_bar)
             numerator += h_diff * t_diff
             # (h - h_bar)^2
@@ -148,5 +147,7 @@ for byte_index in tqdm(range(B16)):
             np.sqrt(denominator_model*denominator_measured)
         max_cpa[key_guess] = max(abs(cpa_output[key_guess]))
     key.append(np.argmax(max_cpa))
+    last_guess_key = f"{key[-1]:02x}"
 
 print(key)
+# ['First round', 219, 254, 140, 75, 197, 187, 96, 220, 183, 166, 181, 199, 220, 101, 102, 225]
