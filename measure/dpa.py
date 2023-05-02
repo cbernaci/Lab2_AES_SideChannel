@@ -20,6 +20,13 @@ def tqdm_sub(x, *args, **kwargs):
 if not use_tqdm:
     tqdm.tqdm = tqdm_sub
     tqdm.tqdm.write = print
+else:
+    try:
+        import tqdm
+    except ImportError:
+        use_tqdm = False
+        tqdm.tqdm = tqdm_sub
+        tqdm.tqdm.write = print
 
 # Define the path to the directory containing the algorithm subfolders
 # Change this to your trace path

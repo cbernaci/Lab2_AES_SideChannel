@@ -8,11 +8,28 @@ import numpy as np
 import process_traces
 from tqdm import tqdm
 
+use_tqdm = True  # whether to not use tqdm progress bar
+traces_to_load = 0
 B16 = 16
 B256 = 256
 B8 = 8
 SIZE = 32
-saved_traces_np = True
+
+
+def tqdm_sub(x, *args, **kwargs):
+    return x
+
+
+if not use_tqdm:
+    tqdm.tqdm = tqdm_sub
+    tqdm.tqdm.write = print
+else:
+    try:
+        import tqdm
+    except ImportError:
+        use_tqdm = False
+        tqdm.tqdm = tqdm_sub
+        tqdm.tqdm.write = print
 
 sbox = [
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -150,4 +167,3 @@ for byte_index in tqdm.tqdm(range(B16)):
     last_guess_key = f"{key[-1]:02x}"
 
 print(key)
-# ['First round', 219, 254, 140, 75, 197, 187, 96, 220, 183, 166, 181, 199, 220, 101, 102, 225]
