@@ -11,7 +11,7 @@ from aes_sub import *
 
 # Define the path to the directory containing the algorithm subfolders
 # TODO: change this to your trace path
-path = r'D:\OneDrive - nyu.edu\temp\data\meas3'
+path = r'D:\OneDrive - nyu.edu\temp\data\meas2'
 
 use_tqdm = True  # whether to not use tqdm progress bar
 traces_to_load = 0
@@ -113,15 +113,15 @@ for const_use in tqdm(range(B256), desc="const use"):
             max_cpa[key_guess] = max(abs(correlation_on_trace))
             correlation_on_trace_visualization[byte_i].append(
                 correlation_on_trace)
-        key.append(np.argmax(max_cpa))
+        key.append(int(np.argmax(max_cpa)))
         last_guess_key = f"{key[-1]:02x}"
 
     res = 0
-    for key_guess in guess_key:
+    for key_guess in key:
         res += key_guess
         res <<= B8
     res >>= B8
 
-    tqdm.write(f"Round {bit_use}: the guessed key is: {res:032x}")
-    np.save(f"{save_dir}/corr_visualization_{const_use}.npy",
+    tqdm.write(f"Round {const_use}: the guessed key is: {res:032x}")
+    np.save(f"{save_dir}/corr_visualization_{res:032x}.npy",
             np.array(correlation_on_trace_visualization))
