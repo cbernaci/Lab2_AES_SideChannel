@@ -6,7 +6,7 @@ from aes_sub import *
 
 # Define the path to the directory containing the algorithm subfolders
 # TODO: change this to your trace path
-path = r'D:\OneDrive - nyu.edu\temp\data\meas3'
+path = r'D:\OneDrive - nyu.edu\temp\data\meas2'
 
 use_tqdm = True  # whether to not use tqdm progress bar
 traces_to_load = 0
@@ -99,7 +99,7 @@ for bit_use in tqdm(range(B8)):
             else:
                 diff = guess_zero/zero_count - guess_one/one_count
             diff = np.abs(diff)
-            max_diffs[key_guess] = np.max(np.abs(diff))
+            max_diffs[key_guess] = np.max(diff)
             mean_delta_accu_visualization[byte_i].append(diff)
         # find the guess_key_i with max difference
         # note: the return type of np.argmax is np.int64, which cause trouble when
@@ -114,5 +114,5 @@ for bit_use in tqdm(range(B8)):
     res >>= B8
 
     tqdm.write(f"Round {bit_use}: the guessed key is: {res:032x}")
-    np.save(f"{save_dir}/diff_visualization_{bit_use}.npy",
+    np.save(f"{save_dir}/diff_visualization_{res:032x}.npy",
             np.array(mean_delta_accu_visualization))
