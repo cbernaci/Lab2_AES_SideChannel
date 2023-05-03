@@ -2,7 +2,11 @@ import os
 import numpy as np
 
 import process_traces
-import aes_sub
+from aes_sub import *
+
+# Define the path to the directory containing the algorithm subfolders
+# TODO: change this to your trace path
+path = r'D:\OneDrive - nyu.edu\temp\data\meas3'
 
 use_tqdm = True  # whether to not use tqdm progress bar
 traces_to_load = 0
@@ -27,10 +31,6 @@ else:
         use_tqdm = False
         tqdm = tqdm_sub
         tqdm.write = print
-
-# Define the path to the directory containing the algorithm subfolders
-# Change this to your trace path
-path = r'D:\OneDrive - nyu.edu\temp\data\meas3'
 
 # load in traces
 if os.path.exists(f'{path}/plain_texts_bytes.npy') and os.path.exists(f'{path}/trace.npy'):
@@ -59,26 +59,31 @@ trace_count = len(traces)
 trace_length = len(traces[0])
 assert (trace_count == len(plain_texts_bytes))
 
-print("guessing key...")
+# create save directory for the difference visualization
+save_dir = 'img_diff'
+save_dir = os.path.join(path, save_dir)
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+
+print("start DPA...")
 for bit_use in tqdm(range(B8)):
     # guess the key by bytes, from the higher byte to the lower byte
     guess_key = []
-    # Mean delta accumulation of traces
-    # This is just for visualization
+    # Mean delta accumulation of traces, just for visualization
     mean_delta_accu_visualization = []
     last_guess_key = ''
     for byte_i in tqdm(range(B16), desc=f"Use bit {bit_use}", leave=False):
         max_diffs = np.zeros(256)
         mean_delta_accu_visualization.append([])
-        for guess_key_i in tqdm(range(B256), leave=False, desc=f"last key: {last_guess_key}, guessing byte {B16 - byte_i}"):
+        for key_guess in tqdm(range(B256), leave=False, desc=f"last key: {last_guess_key}, guessing byte {B16 - byte_i}"):
             # the traces will be sum up into those two bins
             guess_zero = np.zeros_like(traces[0])
             guess_one = np.zeros_like(traces[0])
             zero_count = 0
             one_count = 0
             for i in range(trace_count):
-                bit = (aes_sub.subbytes(guess_key_i,
-                       plain_texts_bytes[i][byte_i]) >> bit_use) & 1
+                bit = (apply_sbox(
+                    plain_texts_bytes[i][byte_i] ^ key_guess) >> bit_use) & 1
                 if bit == 0:
                     guess_zero += traces[i]
                     zero_count += 1
@@ -94,7 +99,7 @@ for bit_use in tqdm(range(B8)):
             else:
                 diff = guess_zero/zero_count - guess_one/one_count
             diff = np.abs(diff)
-            max_diffs[guess_key_i] = np.max(np.abs(diff))
+            max_diffs[key_guess] = np.max(np.abs(diff))
             mean_delta_accu_visualization[byte_i].append(diff)
         # find the guess_key_i with max difference
         # note: the return type of np.argmax is np.int64, which cause trouble when
@@ -103,10 +108,11 @@ for bit_use in tqdm(range(B8)):
         last_guess_key = f"{guess_key[-1]:02x}"
 
     res = 0
-    for guess_key_i in guess_key:
-        res += guess_key_i
+    for key_guess in guess_key:
+        res += key_guess
         res <<= B8
     res >>= B8
 
-    tqdm.write(f"Round {bit_use}: the guessed key is:\n\t{res:032x}")
-    np.save(f"img/diff_visualization_{bit_use}.npy", np.array(mean_delta_accu_visualization))
+    tqdm.write(f"Round {bit_use}: the guessed key is: {res:032x}")
+    np.save(f"{save_dir}/diff_visualization_{bit_use}.npy",
+            np.array(mean_delta_accu_visualization))
